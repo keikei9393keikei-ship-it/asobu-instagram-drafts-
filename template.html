@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  *{box-sizing:border-box;} body{margin:0;background:#fff;}
+  #stage{display:flex;flex-direction:column;}
+
+  .card{width:1080px;height:1350px;position:relative;background:#F4F0DE;overflow:hidden;
+    --green:#1F5A3A;--green2:#2C7A4C;--bright:#8CC152;--gold:#F1C744;--gold2:#E0A92A;--cream2:#FBF8EC;}
+  .frameA{position:absolute;inset:26px;border:8px solid var(--green);border-radius:70px;z-index:3;}
+  .frameB{position:absolute;inset:42px;border:3px solid var(--green);border-radius:56px;z-index:3;}
+  .deco{position:absolute;inset:42px;border-radius:56px;overflow:hidden;z-index:1;}
+  .deco svg{position:absolute;color:var(--green);}
+  .deco .w1{width:360px;left:-195px;bottom:-215px;opacity:.05;transform:rotate(16deg);}
+  .deco .w2{width:290px;right:-170px;top:-155px;opacity:.045;transform:rotate(-24deg);}
+  .inner{position:absolute;inset:0;padding:92px 92px 80px;display:flex;flex-direction:column;align-items:center;text-align:center;z-index:2;}
+  .inner.single{padding-bottom:184px;}
+  .inner.qa{padding-left:70px;padding-right:70px;}
+  .chip{display:inline-flex;align-items:center;gap:15px;background:var(--green);color:#F4F0DE;font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:33px;letter-spacing:.09em;padding:13px 38px;border-radius:999px;flex:none;}
+  .chip .bar2{width:3px;height:29px;background:#F4F0DE;opacity:.7;border-radius:2px;}
+  .label{margin-top:20px;background:var(--gold);color:var(--green);font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:34px;letter-spacing:.05em;padding:11px 36px;border-radius:18px;flex:none;}
+  .mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;}
+  .idisc{width:204px;height:204px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex:none;margin:0 0 26px;box-shadow:0 12px 0 rgba(31,90,58,.14);}
+  .idisc svg{width:106px;height:106px;stroke:#F4F0DE;stroke-width:3.4;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+  .qbox{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;flex:none;}
+  .inner.single .qbox{min-height:250px;}
+  .inner.single .idisc{margin-bottom:26px;}
+  .headline{position:relative;font-family:"Zen Maru Gothic",sans-serif;font-weight:900;color:var(--green);letter-spacing:.005em;text-shadow:0 5px 0 rgba(31,90,58,.13);}
+  .headline .accent{color:var(--bright);}
+  .cover .headline{font-size:122px;line-height:1.16;margin:34px 0 0;}
+  .qa .headline{font-size:96px;line-height:1.26;text-align:center;text-wrap:balance;}
+  .single .headline{font-size:92px;line-height:1.28;text-align:center;text-wrap:balance;}
+  .qrow{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;text-align:center;}
+  .qrow .qm{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:58px;color:var(--bright);line-height:1.1;}
+  .spark{position:absolute;width:60px;height:60px;color:var(--bright);}
+  .spark.l{left:-26px;top:-16px;transform:rotate(-14deg);}
+  .spark.r{right:-26px;top:0;transform:scaleX(-1) rotate(-14deg);}
+  .divider{width:74%;position:relative;border-top:6px dotted var(--green2);flex:none;}
+  .inner.qa .divider{margin:46px 0 32px;}
+  .inner.single .divider{margin:48px 0 38px;}
+  .divider .sh{position:absolute;left:50%;top:0;transform:translate(-50%,-52%);width:86px;height:86px;background:var(--cream2);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--green2);}
+  .divider .sh svg{width:50px;height:50px;}
+  .subpill{background:var(--gold);color:var(--green);font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:46px;padding:18px 52px;border-radius:24px;flex:none;}
+  .illo{flex:1;width:100%;display:flex;align-items:center;justify-content:center;min-height:60px;}
+  .illo svg{width:640px;height:auto;}
+  .cta{display:inline-flex;align-items:center;gap:24px;border:8px solid var(--gold2);background:var(--cream2);border-radius:999px;padding:20px 50px 20px 24px;font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:42px;color:var(--green);flex:none;}
+  .cta .arw{width:62px;height:62px;flex:none;border-radius:50%;background:var(--gold);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:36px;}
+  .cta .num{font-size:60px;line-height:1;margin:0 .08em;}
+  .apanel{position:relative;width:100%;background:var(--cream2);border:3px solid rgba(31,90,58,.22);border-radius:34px;padding:40px 50px;text-align:left;}
+  .inner.qa .apanel{text-align:left;height:280px;display:flex;flex-direction:column;justify-content:center;}
+  .inner.single .apanel{min-height:150px;display:flex;flex-direction:column;justify-content:center;text-align:left;}
+  .apanel .ab{position:absolute;top:-38px;left:44px;width:76px;height:76px;border-radius:50%;background:var(--gold);color:var(--green);font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:42px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 0 rgba(31,90,58,.12);}
+  .answer{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:500;font-size:40px;line-height:1.62;color:#323c32;white-space:pre-line;overflow-wrap:break-word;max-width:640px;margin-left:auto;margin-right:auto;}
+  .pageno{position:absolute;right:96px;bottom:66px;font-family:"IBM Plex Mono",monospace;font-size:30px;color:var(--green2);}
+  .band{position:absolute;left:70px;right:70px;bottom:70px;background:var(--green);color:#F4F0DE;border-radius:20px;padding:24px 30px;font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;font-size:25px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;text-align:center;z-index:2;}
+  .band .nm{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;} .band .sep{opacity:.5;}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+var SHUTTLE='<svg viewBox="0 0 48 48" fill="none"><path d="M24 31c-7 0-12-3-12-3l7-17c1-2 8-2 10 0l7 17s-5 3-12 3Z" fill="currentColor" opacity=".16"/><path d="M17 12l-5 16M24 9v19M31 12l5 16M12 28s5 3 12 3 12-3 12-3" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="24" cy="10" rx="6" ry="4" fill="currentColor"/></svg>';
+var SHUTTLE_BIG='<svg viewBox="0 0 200 220" fill="none"><path d="M100 200 L45 60 Q100 30 155 60 Z" fill="currentColor"/><ellipse cx="100" cy="42" rx="26" ry="18" fill="currentColor"/></svg>';
+var SPARKI='<path d="M20 5v11M6 13l7 6M34 13l-7 6" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>';
+var RACKET='<svg viewBox="0 0 480 250" fill="none" aria-hidden="true">'
++'<path d="M16 66h56M8 96h46M22 124h60" stroke="#8CC152" stroke-width="8" stroke-linecap="round"/>'
++'<g transform="translate(88 58)"><path d="M0 2 L-34 78 Q0 94 34 78 Z" fill="#FBF8EC" stroke="#1F5A3A" stroke-width="4" stroke-linejoin="round"/>'
++'<path d="M0 8 L-24 70 M0 8 L-9 76 M0 8 L9 76 M0 8 L24 70" stroke="#1F5A3A" stroke-width="2.6" stroke-linecap="round"/>'
++'<path d="M-16 0 Q0 -22 16 0 Z" fill="#1F5A3A"/><ellipse cx="0" cy="1" rx="16" ry="7" fill="#1F5A3A"/></g>'
++'<g transform="translate(4 14) rotate(-22 250 120)"><clipPath id="rk"><ellipse cx="352" cy="118" rx="74" ry="92"/></clipPath>'
++'<rect x="40" y="102" width="104" height="36" rx="18" fill="#2C2C2C"/><circle cx="46" cy="120" r="10" fill="#1F5A3A"/>'
++'<path d="M64 104l-9 32M86 104l-9 32M108 104l-9 32M130 104l-9 32" stroke="#565656" stroke-width="3.5" stroke-linecap="round"/>'
++'<rect x="138" y="110" width="112" height="16" rx="8" fill="#1F5A3A"/>'
++'<path d="M242 118 L300 82" stroke="#1F5A3A" stroke-width="13" stroke-linecap="round"/><path d="M242 118 L300 154" stroke="#1F5A3A" stroke-width="13" stroke-linecap="round"/>'
++'<ellipse cx="352" cy="118" rx="74" ry="92" fill="#FBF8EC" stroke="#1F5A3A" stroke-width="13"/>'
++'<g clip-path="url(#rk)" stroke="#1F5A3A" stroke-width="2.4" opacity=".34"><path d="M288 30v176M310 26v184M332 24v188M352 22v190M372 24v188M394 26v184M416 30v176"/><path d="M280 52h150M278 74h154M276 96h158M276 118h158M276 140h158M278 162h154M282 184h146"/></g>'
++'<ellipse cx="352" cy="118" rx="74" ry="92" fill="none" stroke="#8CC152" stroke-width="4.5"/></g></svg>';
+var ICON={
+  person:'<circle cx="24" cy="15" r="7.5"/><path d="M9 41c0-8.5 6.7-14 15-14s15 5.5 15 14"/>',
+  thumb:'<path d="M13 22h6v18h-6z"/><path d="M19 24l6-13c3.5 0 5.6 2.4 4.6 6.4L28.5 22H39c3 0 4.4 2.8 3.4 5l-3.4 11c-.7 2.2-2 3-4.6 3H19"/>',
+  bag:'<path d="M12 18h24l-2.5 22h-19z"/><path d="M18 18v-4a6 6 0 0112 0v4"/>',
+  yen:'<path d="M13 12l11 13 11-13"/><path d="M24 25v15"/><path d="M16 30h16M16 36h16"/>',
+  calcheck:'<rect x="8" y="12" width="32" height="28" rx="4"/><path d="M8 21h32M17 8v8M31 8v8"/><path d="M17 30l4.5 4.5L31 25"/>',
+  pin:'<path d="M24 42s13-11.5 13-21A13 13 0 1011 21c0 9.5 13 21 13 21z"/><circle cx="24" cy="20" r="5"/>'
+};
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hl(s){return esc(s).replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<span class="accent">$1</span>');}
+function cta(s){return esc(s).replace(/(\d+)/,'<span class="num">$1</span>');}
+function ic(name){return '<div class="idisc"><svg viewBox="0 0 48 48">'+(ICON[name]||ICON.person)+'</svg></div>';}
+function deco(){return '<div class="deco"><div class="w1">'+SHUTTLE_BIG+'</div><div class="w2">'+SHUTTLE_BIG+'</div></div>';}
+var DIV='<div class="divider"><span class="sh">'+SHUTTLE+'</span></div>';
+var SPK='<svg class="spark l" viewBox="0 0 40 40">'+SPARKI+'</svg><svg class="spark r" viewBox="0 0 40 40">'+SPARKI+'</svg>';
+function cardHTML(d){
+  var chip='<span class="chip">ASOBU<span class="bar2"></span>和歌山市</span>';
+  var body='';
+  if(d.layout==='cover'){
+    body='<div class="inner cover">'+chip+'<h2 class="headline">'+SPK+hl(d.headline)+'</h2>'+DIV
+      +'<span class="subpill">'+esc(d.sub)+'</span><div class="illo">'+RACKET+'</div>'
+      +'<span class="cta"><span class="arw">→</span>'+cta(d.cta)+'</span></div>';
+  }else if(d.layout==='qa'){
+    body='<div class="inner qa">'+chip+'<div class="mid">'+ic(d.icon)
+      +'<div class="qbox"><div class="qrow"><span class="qm">Q.</span><h2 class="headline">'+hl(d.headline)+'</h2></div></div>'+DIV
+      +'<div class="apanel"><span class="ab">A</span><p class="answer">'+esc(d.body)+'</p></div></div>'
+      +(d.page?'<span class="pageno">'+esc(d.page)+'</span>':'')+'</div>';
+  }else{
+    body='<div class="inner single">'+chip+(d.label?'<span class="label">'+esc(d.label)+'</span>':'')
+      +'<div class="mid">'+ic(d.icon)+'<div class="qbox"><h2 class="headline">'+hl(d.headline)+'</h2></div>'+DIV
+      +'<div class="apanel"><p class="answer">'+esc(d.body)+'</p></div></div>'
+      +'<div class="band"><span class="nm">遊部（ASOBU）</span><span class="sep">|</span><span>和歌山市</span><span class="sep">|</span><span>参加費600円・ラケット無料貸出・参加はDM 🏸</span></div></div>';
+  }
+  return '<div class="card">'+deco()+'<div class="frameA"></div><div class="frameB"></div>'+body+'</div>';
+}
+window.renderCards=function(cards){
+  var s=document.getElementById('stage');s.innerHTML='';
+  (cards||[]).forEach(function(d){ s.insertAdjacentHTML('beforeend', cardHTML(d)); });
+  return document.querySelectorAll('.card').length;
+};
+</script>
+</body>
+</html>

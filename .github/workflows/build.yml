@@ -1,0 +1,51 @@
+name: build-cards
+
+on:
+  push:
+    branches: [main]
+    paths: ['weeks/**', 'template.html', 'render.mjs', '.github/workflows/build.yml']
+  schedule:
+    # 毎週 日曜 22:00 JST (= 13:00 UTC) に再生成
+    - cron: '0 13 * * 0'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Render cards
+        run: npm run render
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
