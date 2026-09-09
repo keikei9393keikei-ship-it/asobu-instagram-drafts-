@@ -65,7 +65,33 @@ async function renderWeek(browser, week) {
 
   await writeFile(path.join(outDir, 'index.html'), weekPage(week, files, caption));
   console.log(`  ${week}: ${count} cards`);
-  return { week, files, caption };
+  return { week, files, caption, past: hasPastDate(cards, caption) };
+}
+
+/** 中身に「9/6」「9月6日」のような過ぎた日付が含まれるか。
+ *  日付のない常設ネタは false。フォルダ名（投稿日）ではなく活動日で判断するため。 */
+function hasPastDate(cards, caption) {
+  const texts = [caption];
+  for (const c of cards) for (const k of ['headline', 'body', 'sub', 'cta', 'label']) {
+    if (typeof c[k] === 'string') texts.push(c[k]);
+  }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  for (const t of texts) {
+    const ms = [...t.matchAll(/(?<![\d\/])(\d{1,2})\/(\d{1,2})(?![\d\/])/g),
+                ...t.matchAll(/(\d{1,2})月(\d{1,2})日/g)];
+    for (const m of ms) {
+      const mo = Number(m[1]), d = Number(m[2]);
+      if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
+      let best = null;
+      for (const y of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+        const cand = new Date(y, mo - 1, d);
+        if (cand.getMonth() !== mo - 1) continue;
+        if (!best || Math.abs(cand - today) < Math.abs(best - today)) best = cand;
+      }
+      if (best && best < today) return true;
+    }
+  }
+  return false;
 }
 
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -103,12 +129,16 @@ function weekPage(week, files, caption) {
 </body></html>`;
 }
 
-function indexPage(weeks) {
-  const rows = weeks.slice().reverse().map(w => `<li><a href="./${w}/">${w}</a></li>`).join('');
+function indexPage(results) {
+  // 活動日を過ぎた告知に「済」を付ける。スマホで過去の週を選んでしまうのを防ぐ。
+  const rows = results.slice().reverse().map(({ week, past }) =>
+    `<li><a href="./${week}/">${week}</a>${past ? '<span class="past">済</span>' : ''}</li>`).join('');
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>遊部 投稿カード</title>
 <style>body{margin:0;font-family:system-ui,"Hiragino Sans",sans-serif;background:#141814;color:#eef0e9;padding:24px 16px;}
-h1{font-size:1.15rem;} a{color:#8CC152;font-size:1.05rem;} li{margin:10px 0;}</style></head>
+h1{font-size:1.15rem;} a{color:#8CC152;font-size:1.05rem;} li{margin:10px 0;}
+.past{margin-left:10px;font-size:.72rem;color:#8b9186;border:1px solid #3a423b;border-radius:999px;padding:2px 9px;vertical-align:middle;}
+li:has(.past) a{color:#6f7a6c;}</style></head>
 <body><h1>遊部（ASOBU）投稿カード</h1><p style="color:#9aa396;font-size:.85rem;">週を選ぶ → 画像を保存＋キャプションをコピー → Instagramで投稿</p>
 <ul>${rows}</ul></body></html>`;
 }
@@ -117,7 +147,8 @@ const weeks = await listWeeks();
 if (!weeks.length) { console.log('weeks/ に cards.json がありません'); process.exit(0); }
 await mkdir(DIST, { recursive: true });
 const browser = await chromium.launch();
-for (const w of weeks) await renderWeek(browser, w);
+const results = [];
+for (const w of weeks) results.push(await renderWeek(browser, w));
 await browser.close();
-await writeFile(path.join(DIST, 'index.html'), indexPage(weeks));
+await writeFile(path.join(DIST, 'index.html'), indexPage(results));
 console.log(`done. ${weeks.length} weeks -> dist/`);

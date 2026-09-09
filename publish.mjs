@@ -8,9 +8,9 @@
 //
 // 必要な環境変数:
 //   WEEK             … weeks/ 配下のフォルダ名（例 2026-09-10）
-//   MODE             … 'check'（既定・投稿しない） / 'publish'
-//   IG_USER_ID       … InstagramのプロアカウントのユーザーID
+//   MODE             … 'check'（既定・投稿しない） / 'publish' / 'whoami'（トークンの確認だけ）
 //   IG_ACCESS_TOKEN  … instagram_business_content_publish を含むアクセストークン
+//   IG_USER_ID       … 任意。既定は 'me'（トークンの持ち主のアカウント）
 //   PAGES_BASE_URL   … 例 https://<user>.github.io/<repo>
 //   IG_API_BASE      … 任意。既定は https://graph.instagram.com
 //   IG_API_VERSION   … 任意。既定は v23.0（Metaが古い版を廃止したらここを上げる）
@@ -22,11 +22,15 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
-const WEEK = req('WEEK');
 const MODE = (process.env.MODE || 'check').trim();
-const PAGES_BASE_URL = req('PAGES_BASE_URL').replace(/\/+$/, '');
+// whoami はトークンを確かめるだけなので、週の指定もPagesも要らない
+const WEEK = MODE === 'whoami' ? '' : req('WEEK');
+const PAGES_BASE_URL = MODE === 'whoami' ? '' : req('PAGES_BASE_URL').replace(/\/+$/, '');
 const API_BASE = (process.env.IG_API_BASE || 'https://graph.instagram.com').replace(/\/+$/, '');
 const API_VERSION = process.env.IG_API_VERSION || 'v23.0';
+
+// 既定の 'me' はトークンの持ち主のアカウントを指すので、IDを調べなくてよい
+const IG_USER_ID = (process.env.IG_USER_ID || '').trim() || 'me';
 
 // Instagram側の制限
 const MAX_CAROUSEL = 10;   // カルーセルは最大10枚
@@ -89,6 +93,12 @@ async function check({ cards, caption, urls }) {
   if (tags.length > MAX_HASHTAGS) {
     problems.push(`ハッシュタグが${tags.length}個。上限は${MAX_HASHTAGS}個`);
   }
+  // 過ぎた日付の告知を投稿しないための確認。
+  // 「9/6」「9月6日」のような表記を拾い、今日より前の日付が入っていたら止める。
+  for (const [text, hit] of pastDates(cards, caption)) {
+    problems.push(`「${text}」はもう過ぎた日付です（${hit}）。告知の日付を直すか、別の週を選んでください`);
+  }
+
   // 会場名は投稿に出さない運用（CLAUDE.md）。「◯◯体育館」という固有名が混ざっていないか見る。
   // 「和歌山市内の体育館」はOK、「体育館シューズ」は持ち物なので対象外。
   const venueRe = /([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}A-Za-z0-9]{1,12})体育館(?!シューズ)/gu;
@@ -127,6 +137,38 @@ async function check({ cards, caption, urls }) {
     process.exit(1);
   }
   console.log('\n✅ チェックはすべて通りました。');
+}
+
+/** 文字列から日付らしき表記を拾い、今日より前のものを返す */
+function pastDates(cards, caption) {
+  const texts = [caption];
+  for (const c of cards) for (const k of ['headline', 'body', 'sub', 'cta', 'label']) {
+    if (typeof c[k] === 'string') texts.push(c[k]);
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const found = new Map();
+
+  for (const t of texts) {
+    // 「9/6」（前後に空白のないもの）と「9月6日」
+    const ms = [...t.matchAll(/(?<![\d\/])(\d{1,2})\/(\d{1,2})(?![\d\/])/g),
+                ...t.matchAll(/(\d{1,2})月(\d{1,2})日/g)];
+    for (const m of ms) {
+      const mo = Number(m[1]), d = Number(m[2]);
+      if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
+      // 年をまたぐ表記のため、今日にいちばん近い年の同じ日付として解釈する
+      let best = null;
+      for (const y of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+        const cand = new Date(y, mo - 1, d);
+        if (cand.getMonth() !== mo - 1) continue; // 2/30 のような無効な日付
+        if (!best || Math.abs(cand - today) < Math.abs(best - today)) best = cand;
+      }
+      if (best && best < today) {
+        found.set(m[0], `${best.getFullYear()}年${mo}月${d}日`);
+      }
+    }
+  }
+  return [...found];
 }
 
 async function headStatus(url) {
@@ -181,8 +223,19 @@ async function waitReady(containerId, label) {
   fail(`${label} の準備が90秒たっても終わりませんでした`);
 }
 
+/** トークンが生きているか、どのアカウントに紐づいているかを確認する */
+async function whoami() {
+  req('IG_ACCESS_TOKEN');
+  const me = await apiGet(IG_USER_ID, { fields: 'id,username,account_type' });
+  console.log('\n✅ トークンは有効です。');
+  console.log(`   アカウント : @${me.username ?? '(不明)'}`);
+  console.log(`   ID         : ${me.id}`);
+  console.log(`   種別       : ${me.account_type ?? '(不明)'}`);
+  console.log('\n   このアカウントに投稿されます。違う場合はトークンを取り直してください。');
+}
+
 async function publish({ caption, urls }) {
-  const igUserId = req('IG_USER_ID');
+  const igUserId = IG_USER_ID;
   req('IG_ACCESS_TOKEN');
 
   let creationId;
@@ -214,6 +267,11 @@ async function publish({ caption, urls }) {
   const { id } = await api(`${igUserId}/media_publish`, { creation_id: creationId });
   console.log(`\n✅ 投稿しました。media id = ${id}`);
   console.log('   Instagramアプリで表示を確認してください。');
+}
+
+if (MODE === 'whoami') {
+  await whoami();
+  process.exit(0);
 }
 
 const week = await loadWeek();
