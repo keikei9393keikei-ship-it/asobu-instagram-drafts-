@@ -1,21 +1,22 @@
 [
-  { "layout": "single", "label": "持ち物リスト", "icon": "calcheck",
-    "headline": "これだけ\n持ってくれば",
-    "body": "👟 体育館シューズ\n👕 動ける服\n🥤 飲み物・タオル" },
+  { "layout": "cover",
+    "headline": "新しい靴は\nいりません",
+    "sub": "和歌山市／未経験の方へ",
+    "cta": "シューズの疑問に4つ回答" },
 
-  { "layout": "single", "label": "① シューズ", "icon": "person",
-    "headline": "外履きは\n使えません",
-    "body": "体育館は室内用シューズのみ。外を歩いた靴のままだと入れないので、ここだけ注意です。" },
+  { "layout": "single", "label": "① どんな靴？", "icon": "person",
+    "headline": "室内用なら\n何でもOK",
+    "body": "バドミントン専用でなくて大丈夫。運動できる靴なら種類は問いません。" },
 
-  { "layout": "single", "label": "② 服装", "icon": "thumb",
-    "headline": "Tシャツと\n短パンでOK",
-    "body": "動ければ何でも大丈夫。おそろいのユニフォームのようなものはありません。" },
+  { "layout": "single", "label": "② 家にある靴", "icon": "thumb",
+    "headline": "外で履いて\nなければOK",
+    "body": "一度も外を歩いていない靴なら使えます。体育館は室内用シューズのみのためです。" },
 
-  { "layout": "single", "label": "③ ラケット", "icon": "bag",
-    "headline": "無料で\n貸し出します",
-    "body": "持っていなくて大丈夫。自分に合うものが分かってから買えば十分です。" },
+  { "layout": "single", "label": "③ 買うなら", "icon": "bag",
+    "headline": "続けると\n決めてから",
+    "body": "まず1回来てみて、続けそうなら買えば十分。最初から揃える必要はありません。" },
 
-  { "layout": "single", "label": "最後に", "icon": "chat",
-    "headline": "準備は\nこれで十分",
-    "body": "シューズさえあれば始められます。気になることはDMで聞いてください🤲" }
+  { "layout": "single", "label": "まとめ（保存用）", "icon": "calcheck",
+    "headline": "持ち物は\nこれだけ",
+    "body": "👟 室内用シューズ\n👕 動ける服・飲み物\n💴 600円（ラケットは貸出）" }
 ]
