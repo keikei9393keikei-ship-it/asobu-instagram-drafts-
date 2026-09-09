@@ -65,6 +65,13 @@ Actions から手動で実行すると、Pages上の画像URLを使って Instag
 - **予約投稿はAPIにない。**実行した時点で投稿される
 - リール（動画）は動画の公開URLが必要で、GitHubは動画置き場に向かないため対象外。手動投稿のまま
 
+## 自動投稿（予定日に公開）
+
+`weeks/` のフォルダ名は**投稿予定日**。`auto-publish-instagram` が毎日19:00 JSTに動き、
+その日のフォルダがあれば投稿する。無ければ何もしない。
+
+投稿する日を変えたい、順番を入れ替えたい → **フォルダ名を変えるだけ**。
+
 ## 構成
 
 | ファイル | 役割 |
@@ -74,6 +81,7 @@ Actions から手動で実行すると、Pages上の画像URLを使って Instag
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ |
 | `publish.mjs` | Pages上の画像URLを使って Instagram に投稿（手動実行） |
 | `.github/workflows/publish.yml` | 上記を Actions から手動実行するためのワークフロー |
+| `.github/workflows/auto-publish.yml` | 毎日19:00 JST、その日の日付のフォルダがあれば自動投稿 |
 | `weeks/<日付>/` | 投稿ごとの `cards.json` ＋ `caption.txt` |
 | `drafts/2026-08-*` | 旧パイプラインが生成した過去ドラフト（保管） |
 | `legacy/` | 旧パイプライン（Python/Pillow・毎日生成）。停止済み。参照用に保管 |

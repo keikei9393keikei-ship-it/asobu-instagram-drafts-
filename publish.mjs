@@ -9,6 +9,7 @@
 // 必要な環境変数:
 //   WEEK             … weeks/ 配下のフォルダ名（例 2026-09-10）
 //   MODE             … 'check'（既定・投稿しない） / 'publish' / 'whoami'（トークンの確認だけ）
+//                      / 'scheduled'（今日の日付のフォルダがあれば投稿。cronから使う）
 //   IG_ACCESS_TOKEN  … instagram_business_content_publish を含むアクセストークン
 //   IG_USER_ID       … 任意。既定は 'me'（トークンの持ち主のアカウント）
 //   PAGES_BASE_URL   … 例 https://<user>.github.io/<repo>
@@ -23,8 +24,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 const MODE = (process.env.MODE || 'check').trim();
+/** 日本時間の今日（YYYY-MM-DD）。フォルダ名 = 投稿予定日 として使う */
+function todayJST() {
+  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
 // whoami はトークンを確かめるだけなので、週の指定もPagesも要らない
-const WEEK = MODE === 'whoami' ? '' : req('WEEK');
+// scheduled は「今日の日付のフォルダ」を自動で選ぶ
+const WEEK = MODE === 'whoami' ? '' : MODE === 'scheduled' ? todayJST() : req('WEEK');
 const PAGES_BASE_URL = MODE === 'whoami' ? '' : req('PAGES_BASE_URL').replace(/\/+$/, '');
 const API_BASE = (process.env.IG_API_BASE || 'https://graph.instagram.com').replace(/\/+$/, '');
 const API_VERSION = process.env.IG_API_VERSION || 'v23.0';
@@ -223,6 +230,22 @@ async function waitReady(containerId, label) {
   fail(`${label} の準備が90秒たっても終わりませんでした`);
 }
 
+/** 同じ内容をすでに投稿していないか。cronが二重に走ったときの保険 */
+async function alreadyPosted(caption) {
+  const key = caption.replace(/\s+/g, '').slice(0, 60);
+  try {
+    const qs = new URLSearchParams({ fields: 'caption', limit: '10', access_token: process.env.IG_ACCESS_TOKEN });
+    const r = await fetch(`${API_BASE}/${API_VERSION}/${IG_USER_ID}/media?${qs}`);
+    const json = await r.json();
+    if (!r.ok || json.error) throw new Error(json?.error?.message || `HTTP ${r.status}`);
+    return (json.data || []).some((m) => (m.caption || '').replace(/\s+/g, '').slice(0, 60) === key);
+  } catch (e) {
+    // 確認できなくても投稿は止めない（cronは1日1回なので重複の危険は低い）
+    console.log(`   （直近の投稿を確認できませんでした: ${e.message}。そのまま進みます）`);
+    return false;
+  }
+}
+
 /** トークンが生きているか、どのアカウントに紐づいているかを確認する */
 async function whoami() {
   req('IG_ACCESS_TOKEN');
@@ -274,10 +297,19 @@ if (MODE === 'whoami') {
   process.exit(0);
 }
 
+if (MODE === 'scheduled' && !existsSync(path.join(ROOT, 'weeks', WEEK))) {
+  console.log(`今日（${WEEK}）に予定された投稿はありません。何もせず終了します。`);
+  process.exit(0);
+}
+
 const week = await loadWeek();
 await check(week);
 
-if (MODE === 'publish') {
+if (MODE === 'publish' || MODE === 'scheduled') {
+  if (MODE === 'scheduled' && (await alreadyPosted(week.caption))) {
+    console.log('\n同じ内容がすでに投稿されています。重複を避けてスキップしました。');
+    process.exit(0);
+  }
   await publish(week);
 } else {
   console.log('\n（mode=check のため投稿はしていません）');
