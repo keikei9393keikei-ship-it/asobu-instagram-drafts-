@@ -34,6 +34,35 @@ npm run render
 # dist/index.html をブラウザで開く
 ```
 
+## Instagramへの半自動投稿
+
+Actions から手動で実行すると、Pages上の画像URLを使って Instagram に投稿する。
+**自動では動かない。**必ず自分でボタンを押す。
+
+### 初期設定（1回だけ）
+
+1. Instagramを**プロアカウント**にする（ビジネス or クリエイター）
+2. Meta for Developers でアプリを作り、Instagram の製品を追加。
+   `instagram_business_basic` と `instagram_business_content_publish` を含むアクセストークンを取得する
+3. リポジトリの **Settings → Secrets and variables → Actions** に登録
+   - Secrets: `IG_USER_ID`（InstagramのユーザーID）、`IG_ACCESS_TOKEN`（アクセストークン）
+   - Variables（任意）: `PAGES_BASE_URL`、`IG_API_VERSION`（Metaが版を廃止したときに上げる）
+
+### 投稿のしかた
+
+1. `weeks/<日付>/` を push して **build-cards** が成功し、Pages に画像が並んでいることを確認
+2. **Actions → publish-instagram → Run workflow**
+3. `week` にフォルダ名（例 `2026-09-10`）、`mode` は **まず `check`**
+   → 画像URLが全部ひらけるか、キャプション、ハッシュタグ数、会場名が残っていないかを確認できる
+4. 問題なければ同じ手順で `mode` を **`publish`** にして実行 → 投稿される
+
+### 制限
+
+- カルーセルは最大10枚、キャプション2200文字、ハッシュタグ30個まで（`check` が事前に弾く）
+- 1日に投稿できる本数に上限がある（100件程度）
+- **予約投稿はAPIにない。**実行した時点で投稿される
+- リール（動画）は動画の公開URLが必要で、GitHubは動画置き場に向かないため対象外。手動投稿のまま
+
 ## 構成
 
 | ファイル | 役割 |
@@ -41,6 +70,8 @@ npm run render
 | `template.html` | カードの見た目。`window.renderCards(cards)` を持つ |
 | `render.mjs` | Playwright で各カードを 1080×1350 PNG 化、Pages用サイトを `dist/` に生成 |
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ |
+| `publish.mjs` | Pages上の画像URLを使って Instagram に投稿（手動実行） |
+| `.github/workflows/publish.yml` | 上記を Actions から手動実行するためのワークフロー |
 | `weeks/<日付>/` | 投稿ごとの `cards.json` ＋ `caption.txt` |
 | `drafts/2026-08-*` | 旧パイプラインが生成した過去ドラフト（保管） |
 | `legacy/` | 旧パイプライン（Python/Pillow・毎日生成）。停止済み。参照用に保管 |

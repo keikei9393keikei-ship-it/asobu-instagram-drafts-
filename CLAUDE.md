@@ -106,7 +106,9 @@ npm run render                    # dist/index.html をブラウザで確認
 | `weeks/<日付>/` | 投稿ごとの `cards.json` ＋ `caption.txt` | 通常の作業はここ |
 | `template.html` | カードの見た目。`window.renderCards(cards)` を持つ | デザイン改修時のみ。参加費600円などが `single` のバンドにハードコードされている |
 | `render.mjs` | Playwright で 1080×1350 PNG 化し `dist/` にPages用サイトを生成 | 仕組み改修時のみ |
-| `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | |
+| `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | `main` へのpushでのみ動く |
+| `publish.mjs` | Instagramへの投稿（Pages上の画像URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
+| `.github/workflows/publish.yml` | 投稿を手動実行するワークフロー | 自動では動かない。人がボタンを押す |
 | `drafts/2026-08-*` | 旧パイプラインの過去ドラフト | 参照のみ。更新しない |
 | `legacy/` | 旧パイプライン（Python/Pillow・停止済み） | 触らない |
 | `dist/`, `node_modules/` | 生成物 | gitignore済み。コミットしない |
@@ -114,7 +116,19 @@ npm run render                    # dist/index.html をブラウザで確認
 デザイン仕様の出典は作業場の `research/asobu-team/sns/card-design.md`（クリーム地＋二重フレーム／3レイアウト）。
 このリポジトリ内にはないので、レイアウトを増やすときは既存の `template.html` の作りに合わせる。
 
-## 7. 作業の進め方
+## 7. Instagramへの投稿（半自動）
+
+`publish.mjs` が `weeks/<日付>/` の内容を Instagram に投稿する。Actions から人が手動実行する。
+
+- **自動投稿にはしない。**投稿前に必ず人の目を通すため、`workflow_dispatch` のみ
+- 手順は `mode=check`（確認だけ）→ 問題なければ `mode=publish`
+- `check` は次を事前に弾く：画像URLがひらけない／カルーセル10枚超／キャプション2200文字超／
+  ハッシュタグ30個超／**キャプションに「松下」が残っている**
+- **画像はPages上の公開URLをAPIに渡す方式**なので、先に build-cards の成功とPagesの公開が必要
+- 認証情報は GitHub Secrets（`IG_USER_ID` / `IG_ACCESS_TOKEN`）。コードに書かない
+- 予約投稿はAPIにないため、時刻指定が要るならcronで `publish` を叩く形になる
+
+## 8. 作業の進め方
 
 - 開発ブランチは `claude/badminton-circle-guide-476pv8`。指示がない限り他のブランチに push しない。
 - コミットメッセージは既存の慣習に合わせる（例：`docs: add daily Instagram draft` / `feat: ...`）。
