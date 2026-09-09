@@ -89,9 +89,13 @@ async function check({ cards, caption, urls }) {
   if (tags.length > MAX_HASHTAGS) {
     problems.push(`ハッシュタグが${tags.length}個。上限は${MAX_HASHTAGS}個`);
   }
-  // このリポジトリの運用ルール（CLAUDE.md）に反する内容が残っていないか
-  if (/松下/.test(caption)) {
-    problems.push(`キャプションに会場名「松下体育館」が残っています（会場は投稿に出さない運用）`);
+  // 会場名は投稿に出さない運用（CLAUDE.md）。「◯◯体育館」という固有名が混ざっていないか見る。
+  // 「和歌山市内の体育館」はOK、「体育館シューズ」は持ち物なので対象外。
+  const venueRe = /([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}A-Za-z0-9]{1,12})体育館(?!シューズ)/gu;
+  for (const m of caption.matchAll(venueRe)) {
+    if (!/(和歌山)?市内の$/.test(m[1])) {
+      problems.push(`キャプションに会場名らしき表記があります: 「${m[0]}」（会場は投稿に出さない運用）`);
+    }
   }
 
   console.log(`\n■ 投稿内容の確認 — weeks/${WEEK}\n`);
@@ -109,7 +113,7 @@ async function check({ cards, caption, urls }) {
     problems.push(
       `画像URLが${unreachable}件ひらけません。` +
       `Pagesが公開されていないか、まだビルドされていない可能性があります` +
-      `（Settings → Pages → Source = GitHub Actions、そのあと build-cards の成功が必要）`
+      `（Settings → Pages → Source = GitHub Actions。無料プランでは公開リポジトリのみ。そのあと build-cards の成功が必要）`
     );
   }
 
