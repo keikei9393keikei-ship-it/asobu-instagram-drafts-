@@ -211,7 +211,7 @@ def legacy_plan(topic: dict[str, Any]) -> list[dict[str, Any]]:
             {"page_type": "point", "number": index - 1, "headline": slide, "detail": topic.get("caption_body", ""), "microcopy": "参加前の質問はDMで相談できます。", "fact_label": "ASOBU", "fact_value": "初心者・一人参加歓迎"}
             for index, slide in enumerate(slides[1:5], start=2)
         ],
-        {"page_type": "info", "headline": slides[5], "facts": [["活動", "土日 19:00〜21:00"], ["会場", "主に松下体育館"], ["費用", "1回600円"], ["貸出", "ラケット・シャトル無料"]], "note": "最新日程はプロフィールで確認してください。"},
+        {"page_type": "info", "headline": slides[5], "facts": [["活動", "土日 19:00〜21:00"], ["会場", "和歌山市内の体育館"], ["費用", "1回600円"], ["貸出", "ラケット・シャトル無料"]], "note": "最新日程はプロフィールで確認してください。"},
         {"page_type": "cta", "headline": slides[6], "steps": ["1｜プロフィールで最新日程を確認", "2｜都合のよい日を選ぶ", "3｜質問はDMで気軽に相談"], "footer": "初心者・一人参加歓迎"},
     ]
 

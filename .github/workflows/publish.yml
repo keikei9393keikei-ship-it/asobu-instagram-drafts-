@@ -1,0 +1,43 @@
+name: publish-instagram
+
+# 自動では動かない。Actions タブから手動で実行する（半自動投稿）。
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'weeks/ のフォルダ名（例 2026-09-10）'
+        required: true
+        type: string
+      mode:
+        description: 'check = 確認だけ / publish = 実際に投稿する'
+        required: true
+        default: check
+        type: choice
+        options: [check, publish]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: instagram-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Publish to Instagram
+        env:
+          WEEK: ${{ inputs.week }}
+          MODE: ${{ inputs.mode }}
+          PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || 'https://keikei9393keikei-ship-it.github.io/asobu-instagram-drafts-' }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_API_VERSION: ${{ vars.IG_API_VERSION }}
+        run: node publish.mjs

@@ -1,0 +1,34 @@
+[
+  { "layout": "cover",
+    "headline": "はじめての\n1日の**すべて**",
+    "sub": "1人・未経験・ラケットなしOK",
+    "cta": "到着から解散まで6場面" },
+
+  { "layout": "single", "label": "STEP 1｜到着", "icon": "pin",
+    "headline": "着いたら\n**受付**だけ",
+    "body": "和歌山市内の体育館に集合。受付をすませたら、あとは打つだけ。場所はDMでお伝えします。" },
+
+  { "layout": "single", "label": "STEP 2｜持ち物", "icon": "bag",
+    "headline": "ラケットは\n**無料**で貸出",
+    "body": "持ち物は体育館シューズと動ける服だけ。ラケットは無料で貸し出すので、買わなくてOKです。" },
+
+  { "layout": "single", "label": "STEP 3｜前半", "icon": "thumb",
+    "headline": "いきなり\n試合はしない",
+    "body": "最初の30分はフリー練習。自由に打つ時間なので、振り方を思い出すところから始められます。" },
+
+  { "layout": "single", "label": "STEP 4｜後半", "icon": "clock",
+    "headline": "**1試合5分**を\n3回まわす",
+    "body": "ダブルスなので1人では戦いません。3ゲームごとに5分休憩。体力に自信がなくてもOKです。" },
+
+  { "layout": "single", "label": "STEP 5｜まわりの人", "icon": "person",
+    "headline": "1人で来る人\nが多いです",
+    "body": "20代から50代までいろんな人がいます。はじめての人も毎回いるので、1人でも浮きません。" },
+
+  { "layout": "single", "label": "STEP 6｜解散", "icon": "calcheck",
+    "headline": "終わったら\nそのまま解散",
+    "body": "片付けて解散、あとは自由です。参加できる日だけ来る方式なので、次の予定は決めなくてOK。" },
+
+  { "layout": "single", "label": "最後に", "icon": "chat",
+    "headline": "1回だけの\n体験も**OK**",
+    "body": "「1人だし、下手だし…」で迷っている人こそ来てほしい。気になることはDMで聞いてください🤲" }
+]
