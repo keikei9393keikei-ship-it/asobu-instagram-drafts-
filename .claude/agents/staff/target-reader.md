@@ -1,6 +1,6 @@
 ---
 name: target-reader
-description: 遊部（ASOBU）の投稿を、バドミントン未経験のターゲット当事者の目線で批評する。投稿案が本当に効くか確かめたいとき、既存投稿の弱点を洗い出したいときに使う。
+description: 【secretary の指示先／読者役】遊部（ASOBU）の投稿を、バドミントン未経験のターゲット当事者の目線で批評する。通常は secretary が呼ぶ。批評だけを単独で頼みたいときは直接呼んでもよい。
 tools: Read, Glob, Grep
 ---
 
