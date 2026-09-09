@@ -89,6 +89,12 @@ async function check({ cards, caption, urls }) {
   if (tags.length > MAX_HASHTAGS) {
     problems.push(`ハッシュタグが${tags.length}個。上限は${MAX_HASHTAGS}個`);
   }
+  // 過ぎた日付の告知を投稿しないための確認。
+  // 「9/6」「9月6日」のような表記を拾い、今日より前の日付が入っていたら止める。
+  for (const [text, hit] of pastDates(cards, caption)) {
+    problems.push(`「${text}」はもう過ぎた日付です（${hit}）。告知の日付を直すか、別の週を選んでください`);
+  }
+
   // 会場名は投稿に出さない運用（CLAUDE.md）。「◯◯体育館」という固有名が混ざっていないか見る。
   // 「和歌山市内の体育館」はOK、「体育館シューズ」は持ち物なので対象外。
   const venueRe = /([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}A-Za-z0-9]{1,12})体育館(?!シューズ)/gu;
@@ -127,6 +133,38 @@ async function check({ cards, caption, urls }) {
     process.exit(1);
   }
   console.log('\n✅ チェックはすべて通りました。');
+}
+
+/** 文字列から日付らしき表記を拾い、今日より前のものを返す */
+function pastDates(cards, caption) {
+  const texts = [caption];
+  for (const c of cards) for (const k of ['headline', 'body', 'sub', 'cta', 'label']) {
+    if (typeof c[k] === 'string') texts.push(c[k]);
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const found = new Map();
+
+  for (const t of texts) {
+    // 「9/6」（前後に空白のないもの）と「9月6日」
+    const ms = [...t.matchAll(/(?<![\d\/])(\d{1,2})\/(\d{1,2})(?![\d\/])/g),
+                ...t.matchAll(/(\d{1,2})月(\d{1,2})日/g)];
+    for (const m of ms) {
+      const mo = Number(m[1]), d = Number(m[2]);
+      if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
+      // 年をまたぐ表記のため、今日にいちばん近い年の同じ日付として解釈する
+      let best = null;
+      for (const y of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+        const cand = new Date(y, mo - 1, d);
+        if (cand.getMonth() !== mo - 1) continue; // 2/30 のような無効な日付
+        if (!best || Math.abs(cand - today) < Math.abs(best - today)) best = cand;
+      }
+      if (best && best < today) {
+        found.set(m[0], `${best.getFullYear()}年${mo}月${d}日`);
+      }
+    }
+  }
+  return [...found];
 }
 
 async function headStatus(url) {

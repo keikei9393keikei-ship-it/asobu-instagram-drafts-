@@ -104,11 +104,19 @@ function weekPage(week, files, caption) {
 }
 
 function indexPage(weeks) {
-  const rows = weeks.slice().reverse().map(w => `<li><a href="./${w}/">${w}</a></li>`).join('');
+  // フォルダ名の日付が今日より前なら「済」を付ける。スマホで過去の週を選んでしまうのを防ぐ。
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const rows = weeks.slice().reverse().map(w => {
+    const d = new Date(`${w}T00:00:00`);
+    const past = !Number.isNaN(d.valueOf()) && d < today;
+    return `<li><a href="./${w}/">${w}</a>${past ? '<span class="past">済</span>' : ''}</li>`;
+  }).join('');
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>遊部 投稿カード</title>
 <style>body{margin:0;font-family:system-ui,"Hiragino Sans",sans-serif;background:#141814;color:#eef0e9;padding:24px 16px;}
-h1{font-size:1.15rem;} a{color:#8CC152;font-size:1.05rem;} li{margin:10px 0;}</style></head>
+h1{font-size:1.15rem;} a{color:#8CC152;font-size:1.05rem;} li{margin:10px 0;}
+.past{margin-left:10px;font-size:.72rem;color:#8b9186;border:1px solid #3a423b;border-radius:999px;padding:2px 9px;vertical-align:middle;}
+li:has(.past) a{color:#6f7a6c;}</style></head>
 <body><h1>遊部（ASOBU）投稿カード</h1><p style="color:#9aa396;font-size:.85rem;">週を選ぶ → 画像を保存＋キャプションをコピー → Instagramで投稿</p>
 <ul>${rows}</ul></body></html>`;
 }
