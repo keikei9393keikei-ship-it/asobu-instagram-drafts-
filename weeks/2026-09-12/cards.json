@@ -1,13 +1,21 @@
 [
-  { "layout": "single", "label": "持ち物", "icon": "bag",
-    "headline": "体育館\nシューズだけ",
-    "body": "あとは動ける服と飲み物があればOK。ラケットは無料で貸し出します。" },
+  { "layout": "single", "label": "持ち物リスト", "icon": "calcheck",
+    "headline": "これだけ\n持ってくれば",
+    "body": "👟 体育館シューズ\n👕 動ける服\n🥤 飲み物・タオル" },
 
-  { "layout": "single", "label": "お金のこと", "icon": "yen",
-    "headline": "入会金も\n月会費もなし",
-    "body": "かかるのは来た日の600円だけ。続かなくても損しないので、気軽に試せます。" },
+  { "layout": "single", "label": "① シューズ", "icon": "person",
+    "headline": "外履きは\n使えません",
+    "body": "体育館は室内用シューズのみ。外を歩いた靴のままだと入れないので、ここだけ注意です。" },
+
+  { "layout": "single", "label": "② 服装", "icon": "thumb",
+    "headline": "Tシャツと\n短パンでOK",
+    "body": "動ければ何でも大丈夫。おそろいのユニフォームのようなものはありません。" },
+
+  { "layout": "single", "label": "③ ラケット", "icon": "bag",
+    "headline": "無料で\n貸し出します",
+    "body": "持っていなくて大丈夫。自分に合うものが分かってから買えば十分です。" },
 
   { "layout": "single", "label": "最後に", "icon": "chat",
-    "headline": "まずは1回\n来てみて",
-    "body": "「1人だし、下手だし…」で迷っている人こそ来てほしい。気になることはDMで聞いてください🤲" }
+    "headline": "準備は\nこれで十分",
+    "body": "シューズさえあれば始められます。気になることはDMで聞いてください🤲" }
 ]
