@@ -5,15 +5,16 @@ on:
   workflow_dispatch:
     inputs:
       week:
-        description: 'weeks/ のフォルダ名（例 2026-09-10）'
+        description: 'weeks/ のフォルダ名（例 2026-09-09）。whoami のときは何でもよい'
         required: true
+        default: '2026-09-09'
         type: string
       mode:
-        description: 'check = 確認だけ / publish = 実際に投稿する'
+        description: 'whoami = トークン確認 / check = 内容確認 / publish = 実際に投稿'
         required: true
         default: check
         type: choice
-        options: [check, publish]
+        options: [whoami, check, publish]
 
 permissions:
   contents: read

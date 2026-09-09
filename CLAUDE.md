@@ -121,14 +121,14 @@ npm run render                    # dist/index.html をブラウザで確認
 `publish.mjs` が `weeks/<日付>/` の内容を Instagram に投稿する。Actions から人が手動実行する。
 
 - **自動投稿にはしない。**投稿前に必ず人の目を通すため、`workflow_dispatch` のみ
-- 手順は `mode=check`（確認だけ）→ 問題なければ `mode=publish`
+- 手順は `mode=whoami`（トークン確認）→ `mode=check`（内容確認）→ 問題なければ `mode=publish`
 - `check` は次を事前に弾く：画像URLがひらけない／カルーセル10枚超／キャプション2200文字超／
   ハッシュタグ30個超／**キャプションに「◯◯体育館」という固有名が混ざっている**
   （「和歌山市内の体育館」はOK、「体育館シューズ」は持ち物なので対象外）／
   **「9/6」「9月6日」のような過ぎた日付が入っている**（日付のない常設ネタは影響を受けない）
 - 日付の入った告知は**その活動日を過ぎたら投稿できない**。Pagesの一覧でも過去の週には「済」が付く
 - **画像はPages上の公開URLをAPIに渡す方式**なので、先に build-cards の成功とPagesの公開が必要
-- 認証情報は GitHub Secrets（`IG_USER_ID` / `IG_ACCESS_TOKEN`）。コードに書かない
+- 認証情報は GitHub Secrets の `IG_ACCESS_TOKEN` のみ。`IG_USER_ID` は既定 `me` で不要。コードに書かない
 - 予約投稿はAPIにないため、時刻指定が要るならcronで `publish` を叩く形になる
 
 ## 8. 作業の進め方

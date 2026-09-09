@@ -45,16 +45,18 @@ Actions から手動で実行すると、Pages上の画像URLを使って Instag
 2. Meta for Developers でアプリを作り、Instagram の製品を追加。
    `instagram_business_basic` と `instagram_business_content_publish` を含むアクセストークンを取得する
 3. リポジトリの **Settings → Secrets and variables → Actions** に登録
-   - Secrets: `IG_USER_ID`（InstagramのユーザーID）、`IG_ACCESS_TOKEN`（アクセストークン）
+   - Secrets: `IG_ACCESS_TOKEN`（アクセストークン）だけでよい
+   - Secrets（任意）: `IG_USER_ID`。既定は `me`（トークンの持ち主）なので通常は不要
    - Variables（任意）: `PAGES_BASE_URL`、`IG_API_VERSION`（Metaが版を廃止したときに上げる）
 
 ### 投稿のしかた
 
 1. `weeks/<日付>/` を push して **build-cards** が成功し、Pages に画像が並んでいることを確認
 2. **Actions → publish-instagram → Run workflow**
-3. `week` にフォルダ名（例 `2026-09-10`）、`mode` は **まず `check`**
+3. `mode` を **`whoami`** にすると、トークンが有効かとどのアカウントに投稿されるかだけ確認できる
+4. `week` にフォルダ名（例 `2026-09-09`）、`mode` は **`check`**
    → 画像URLが全部ひらけるか、キャプション、ハッシュタグ数、会場名が残っていないかを確認できる
-4. 問題なければ同じ手順で `mode` を **`publish`** にして実行 → 投稿される
+5. 問題なければ同じ手順で `mode` を **`publish`** にして実行 → 投稿される
 
 ### 制限
 
