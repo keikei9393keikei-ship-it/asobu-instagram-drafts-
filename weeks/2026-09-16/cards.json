@@ -1,0 +1,13 @@
+[
+  { "layout": "single", "label": "ラケット", "icon": "bag",
+    "headline": "買わずに\n始められます",
+    "body": "無料の貸し出しラケットがあります。自分に合うものが分かってから買えば十分です。" },
+
+  { "layout": "single", "label": "服装", "icon": "person",
+    "headline": "動けるなら\n何でもOK",
+    "body": "Tシャツと短パンで来る人がほとんど。体育館シューズだけ用意してください。" },
+
+  { "layout": "single", "label": "最後に", "icon": "chat",
+    "headline": "手ぶらに\n近い状態で",
+    "body": "シューズと600円だけ持って来てください。それだけで始められます🤲" }
+]

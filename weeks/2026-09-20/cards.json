@@ -1,0 +1,13 @@
+[
+  { "layout": "single", "label": "体験", "icon": "calcheck",
+    "headline": "1回だけでも\n大歓迎",
+    "body": "体験だけの人も来ています。合わなければ来なくて大丈夫。気まずくなりません。" },
+
+  { "layout": "single", "label": "参加の仕方", "icon": "chat",
+    "headline": "DMを\nくれるだけ",
+    "body": "LINEグループに招待します。参加できる日だけ来る方式なので、毎週でなくてOKです。" },
+
+  { "layout": "single", "label": "最後に", "icon": "thumb",
+    "headline": "迷ってるなら\n一度どうぞ",
+    "body": "体育館シューズと600円だけ。ラケットは無料で貸し出します🤲" }
+]

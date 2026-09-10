@@ -1,0 +1,35 @@
+name: auto-publish-instagram
+
+# 毎日1回、weeks/<今日の日付>/ があればその投稿を自動で公開する。
+# フォルダ名が投稿予定日そのものなので、別に予定表を持たない。
+# 予定日のフォルダが無ければ何もせず終わる。
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 12:00 UTC = 21:00 JST（夜のスクロール時間帯に合わせる）
+  workflow_dispatch: {}    # 手動でも試せるように
+
+permissions:
+  contents: read
+
+concurrency:
+  group: instagram-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Publish today's post (if any)
+        env:
+          MODE: scheduled
+          PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || 'https://keikei9393keikei-ship-it.github.io/asobu-instagram-drafts-' }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_API_VERSION: ${{ vars.IG_API_VERSION }}
+        run: node publish.mjs
