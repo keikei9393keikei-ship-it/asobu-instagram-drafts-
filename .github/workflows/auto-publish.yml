@@ -5,7 +5,8 @@ name: auto-publish-instagram
 # 予定日のフォルダが無ければ何もせず終わる。
 on:
   schedule:
-    - cron: '0 12 * * *'   # 12:00 UTC = 21:00 JST（夜のスクロール時間帯に合わせる）
+    # 毎時00分はGitHub側が混雑して発火しない/遅れることがあるため、半端な分にする
+    - cron: '17 12 * * *'  # 12:17 UTC = 21:17 JST
   workflow_dispatch: {}    # 手動でも試せるように
 
 permissions:
