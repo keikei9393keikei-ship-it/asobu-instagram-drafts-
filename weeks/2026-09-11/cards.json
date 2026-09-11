@@ -1,0 +1,21 @@
+[
+  { "layout": "single", "label": "参加の流れ", "icon": "chat",
+    "headline": "DMを\n送るだけ",
+    "body": "そのあとLINEグループに招待します。来られる日だけ連絡をもらう形です。" },
+
+  { "layout": "single", "label": "① 送る文", "icon": "person",
+    "headline": "この一文で\n大丈夫です",
+    "body": "「はじめまして。未経験ですが参加したいです」これだけで伝わります。" },
+
+  { "layout": "single", "label": "② 招待", "icon": "pin",
+    "headline": "日程と場所は\nそこで",
+    "body": "LINEグループで活動日をお知らせします。会場もそこでお伝えします。" },
+
+  { "layout": "single", "label": "③ 来る日だけ", "icon": "calcheck",
+    "headline": "毎週\n来なくていい",
+    "body": "参加できる日だけ事前に連絡をもらう方式です。予定が読めなくても続けられます。" },
+
+  { "layout": "single", "label": "④ 当日", "icon": "bag",
+    "headline": "持ち物は\nシューズだけ",
+    "body": "ラケットは無料で貸し出します。今日が初めての人も、その日から試合に入っています。" }
+]
