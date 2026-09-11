@@ -1,7 +1,7 @@
 [
   { "layout": "single", "label": "参加の流れ", "icon": "chat",
     "headline": "DMを\n送るだけ",
-    "body": "そのあとLINEグループに招待します。来られる日だけ連絡をもらう形です。" },
+    "body": "参加の連絡はこれだけ。来られる日だけ教えてもらう形なので、気負わなくて大丈夫です。" },
 
   { "layout": "single", "label": "① 送る文", "icon": "person",
     "headline": "この一文で\n大丈夫です",
