@@ -1,0 +1,13 @@
+[
+  { "layout": "single", "label": "今週の活動", "icon": "calcheck",
+    "headline": "9/27(日)\n19:00〜",
+    "body": "📍 和歌山市内の体育館\n🏸 フリー練習30分＋試合\n🙌 1人・初心者・体験OK" },
+
+  { "layout": "single", "label": "試合の形", "icon": "person",
+    "headline": "ダブルスで\n5分ずつ",
+    "body": "1試合5分で入れ替わります。ペアを組むので、初対面でも自然に打ち合えます。" },
+
+  { "layout": "single", "label": "はじめての方へ", "icon": "chat",
+    "headline": "今日が初めて\nでも入れます",
+    "body": "見ているだけの日にはなりません。室内用シューズと600円だけ持ってきてください。" }
+]
