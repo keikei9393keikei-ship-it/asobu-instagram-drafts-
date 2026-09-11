@@ -7,9 +7,9 @@
     "headline": "この一文で\n大丈夫です",
     "body": "「はじめまして。未経験ですが参加したいです」これだけで伝わります。" },
 
-  { "layout": "single", "label": "② 招待", "icon": "pin",
-    "headline": "日程と場所は\nそこで",
-    "body": "LINEグループで活動日をお知らせします。会場もそこでお伝えします。" },
+  { "layout": "single", "label": "② お知らせ", "icon": "pin",
+    "headline": "日程と会場は\nそのあとに",
+    "body": "DMをもらってから、活動日と会場を個別にお伝えします。" },
 
   { "layout": "single", "label": "③ 来る日だけ", "icon": "calcheck",
     "headline": "毎週\n来なくていい",
