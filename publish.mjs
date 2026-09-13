@@ -13,6 +13,9 @@
 //   IG_ACCESS_TOKEN  … instagram_business_content_publish を含むアクセストークン
 //   IG_USER_ID       … 任意。既定は 'me'（トークンの持ち主のアカウント）
 //   PAGES_BASE_URL   … 例 https://<user>.github.io/<repo>
+//   PUBLISH_FROM_JST … 任意。scheduled が投稿してよい時間帯の開始（日本時間の時。既定 21）
+//   PUBLISH_TO_JST   … 任意。同じく終了（既定 23）。この時間帯の外で起きた回は何もしない
+//   IGNORE_WINDOW    … 任意。'true' なら時間帯の判定を飛ばす（手動実行のとき）
 //   IG_API_BASE      … 任意。既定は https://graph.instagram.com
 //   IG_API_VERSION   … 任意。既定は v23.0（Metaが古い版を廃止したらここを上げる）
 
@@ -28,6 +31,16 @@ const MODE = (process.env.MODE || 'check').trim();
 function todayJST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
+/** 日本時間の「時」（0〜23） */
+function hourJST() {
+  return Number(new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(11, 13));
+}
+
+// GitHubのcronは時刻どおりに発火しない（実測で3〜4時間遅れた）。
+// そこで auto-publish は毎時起動し、日本時間でこの時間帯に入った回だけが投稿する。
+// 遅れて来た回は「投稿しない」だけで、次の回が時間帯に入れば投稿される。
+const WINDOW_FROM = Number(process.env.PUBLISH_FROM_JST || 21);
+const WINDOW_TO = Number(process.env.PUBLISH_TO_JST || 23);
 
 // whoami はトークンを確かめるだけなので、週の指定もPagesも要らない
 // scheduled は「今日の日付のフォルダ」を自動で選ぶ
@@ -295,6 +308,14 @@ async function publish({ caption, urls }) {
 if (MODE === 'whoami') {
   await whoami();
   process.exit(0);
+}
+
+if (MODE === 'scheduled' && process.env.IGNORE_WINDOW !== 'true') {
+  const h = hourJST();
+  if (h < WINDOW_FROM || h >= WINDOW_TO) {
+    console.log(`いまは日本時間 ${h}時台です。投稿するのは ${WINDOW_FROM}:00〜${WINDOW_TO}:00 の回だけなので、何もせず終了します。`);
+    process.exit(0);
+  }
 }
 
 if (MODE === 'scheduled' && !existsSync(path.join(ROOT, 'weeks', WEEK))) {
