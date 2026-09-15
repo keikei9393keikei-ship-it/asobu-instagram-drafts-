@@ -1,12 +1,18 @@
 name: auto-publish-instagram
 
-# 毎日1回、weeks/<今日の日付>/ があればその投稿を自動で公開する。
+# weeks/<今日の日付>/ があれば、その投稿を夜のうちに自動で公開する。
 # フォルダ名が投稿予定日そのものなので、別に予定表を持たない。
 # 予定日のフォルダが無ければ何もせず終わる。
+#
+# GitHubのcronは時刻どおりに発火しない。1日1回にしていたときは実測で3〜4時間遅れ、
+# 21:17 JST のつもりが深夜1時台に投稿されていた（9/10・9/11・9/12）。
+# そのため毎時起動し、投稿してよい時間帯（既定 21:00〜23:00 JST）に入った回だけが
+# 実際に投稿する。判定は publish.mjs 側（PUBLISH_FROM_JST / PUBLISH_TO_JST）。
+# 時間帯に2回入っても、キャプションの突き合わせで二重投稿は防がれる。
 on:
   schedule:
-    # 毎時00分はGitHub側が混雑して発火しない/遅れることがあるため、半端な分にする
-    - cron: '17 12 * * *'  # 12:17 UTC = 21:17 JST
+    # 毎時00分はGitHub側が特に混雑するため、半端な分にする
+    - cron: '7 * * * *'
   workflow_dispatch: {}    # 手動でも試せるように
 
 permissions:
@@ -29,6 +35,8 @@ jobs:
       - name: Publish today's post (if any)
         env:
           MODE: scheduled
+          # 手動実行は「今すぐ出したい」ときなので、時間帯の判定を飛ばす
+          IGNORE_WINDOW: ${{ github.event_name == 'workflow_dispatch' }}
           PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || 'https://keikei9393keikei-ship-it.github.io/asobu-instagram-drafts-' }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
