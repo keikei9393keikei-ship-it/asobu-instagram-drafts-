@@ -1,0 +1,13 @@
+[
+  { "layout": "single", "label": "年齢層", "icon": "person",
+    "headline": "20代から\n50代まで",
+    "body": "いろんな年齢の人が打っています。自分の世代だけいない、ということはありません。" },
+
+  { "layout": "single", "label": "はじめ方", "icon": "bag",
+    "headline": "道具ゼロ\nから入れます",
+    "body": "ラケットは無料で貸し出します。あとは室内用シューズだけです。" },
+
+  { "layout": "single", "label": "最後に", "icon": "thumb",
+    "headline": "始めた日が\n一番はやい",
+    "body": "未経験で、その日が初めての人も毎回います。まずは一度どうぞ。" }
+]
