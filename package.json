@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "render": "node render.mjs"
+    "render": "node render.mjs",
+    "dupes": "node check-dupes.mjs"
   },
   "devDependencies": {
     "playwright": "^1.48.2"
