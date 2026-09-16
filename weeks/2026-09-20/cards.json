@@ -1,7 +1,7 @@
 [
   { "layout": "single", "label": "体験", "icon": "calcheck",
-    "headline": "1回だけでも\n大歓迎",
-    "body": "体験だけの人も来ています。合わなければ来なくて大丈夫。気まずくなりません。" },
+    "headline": "まずは\n1回だけでも",
+    "body": "体験だけの人も来ています。続けるかどうかは、来てから決めて大丈夫です。" },
 
   { "layout": "single", "label": "参加の仕方", "icon": "chat",
     "headline": "DMを\nくれるだけ",
