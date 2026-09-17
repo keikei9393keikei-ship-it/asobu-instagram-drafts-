@@ -12,6 +12,8 @@ import { join } from 'node:path';
 
 const ALL = process.argv.includes('--all');
 const MIN_LEN = 12;          // これより短い文は定型句として扱わない
+// 冒頭の名乗りは毎回同じで入れる決まりなので、重複として数えない
+const GREETING_RE = /^(こんにちは|こんばんは)！和歌山市でバドミントンサークルをしています🏸/;
 const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 
 const weeks = readdirSync('weeks')
@@ -28,6 +30,7 @@ function sentences(week) {
     for (const line of body.split('\n')) {
       const t = line.trim();
       if (!t || t.startsWith('▫️')) continue;   // 箇条書きは重なって当然なので外す
+      if (GREETING_RE.test(t)) continue;         // 冒頭の名乗りは毎回同じでよい
       for (const s of t.split(/(?<=。)/)) {
         const v = s.trim();
         if (v.length >= MIN_LEN) out.push(v);
