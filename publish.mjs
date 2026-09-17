@@ -36,6 +36,21 @@ function hourJST() {
   return Number(new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(11, 13));
 }
 
+// 全投稿の冒頭につける名乗り。昼に出すなら「こんにちは」、夜なら「こんばんは」。
+// caption.txt にはどちらかを書いておけばよく、実際に投稿する時刻（日本時間）に
+// 合わせてここで言い換える。自動投稿は21〜23時なので、ふだんは「こんばんは」になる。
+const GREETING_TAIL = '！和歌山市でバドミントンサークルをしています🏸';
+const GREETING_RE = new RegExp(`^(こんにちは|こんばんは)${GREETING_TAIL}`);
+
+function greetingNow(h = hourJST()) {
+  return `${h >= 5 && h < 17 ? 'こんにちは' : 'こんばんは'}${GREETING_TAIL}`;
+}
+
+/** caption.txt の1行目の名乗りを、いま投稿する時刻の挨拶に置き換える */
+function withGreetingForNow(caption) {
+  return caption.replace(GREETING_RE, greetingNow());
+}
+
 // GitHubのcronは時刻どおりに発火しない（実測で3〜4時間遅れた）。
 // そこで auto-publish は毎時起動し、日本時間でこの時間帯に入った回だけが投稿する。
 // 遅れて来た回は「投稿しない」だけで、次の回が時間帯に入れば投稿される。
@@ -94,7 +109,7 @@ async function loadWeek() {
 
   const captionPath = path.join(dir, 'caption.txt');
   if (!existsSync(captionPath)) fail(`weeks/${WEEK}/caption.txt がありません`);
-  const caption = (await readFile(captionPath, 'utf8')).trim();
+  const caption = withGreetingForNow((await readFile(captionPath, 'utf8')).trim());
 
   return { cards, caption, urls: fileNames(cards).map((f) => `${PAGES_BASE_URL}/${WEEK}/${f}`) };
 }
@@ -112,6 +127,10 @@ async function check({ cards, caption, urls }) {
   const tags = caption.match(/#[^\s#]+/g) || [];
   if (tags.length > MAX_HASHTAGS) {
     problems.push(`ハッシュタグが${tags.length}個。上限は${MAX_HASHTAGS}個`);
+  }
+  // 名乗りは毎回入れる決まりなので、抜けていたら投稿前に止める
+  if (!GREETING_RE.test(caption)) {
+    problems.push(`キャプションの冒頭が「${greetingNow()}」で始まっていません`);
   }
   // 過ぎた日付の告知を投稿しないための確認。
   // 「9/6」「9月6日」のような表記を拾い、今日より前の日付が入っていたら止める。
@@ -243,15 +262,21 @@ async function waitReady(containerId, label) {
   fail(`${label} の準備が90秒たっても終わりませんでした`);
 }
 
+// 名乗りは全投稿の冒頭に同じ形で入るので、突き合わせる前に落とす。
+// 残さないと、どの投稿も先頭が同じになって「投稿済み」と誤判定しかねない。
+function dedupeKey(caption) {
+  return caption.replace(GREETING_RE, '').replace(/\s+/g, '').slice(0, 60);
+}
+
 /** 同じ内容をすでに投稿していないか。cronが二重に走ったときの保険 */
 async function alreadyPosted(caption) {
-  const key = caption.replace(/\s+/g, '').slice(0, 60);
+  const key = dedupeKey(caption);
   try {
     const qs = new URLSearchParams({ fields: 'caption', limit: '10', access_token: process.env.IG_ACCESS_TOKEN });
     const r = await fetch(`${API_BASE}/${API_VERSION}/${IG_USER_ID}/media?${qs}`);
     const json = await r.json();
     if (!r.ok || json.error) throw new Error(json?.error?.message || `HTTP ${r.status}`);
-    return (json.data || []).some((m) => (m.caption || '').replace(/\s+/g, '').slice(0, 60) === key);
+    return (json.data || []).some((m) => dedupeKey(m.caption || '') === key);
   } catch (e) {
     // 確認できなくても投稿は止めない（cronは1日1回なので重複の危険は低い）
     console.log(`   （直近の投稿を確認できませんでした: ${e.message}。そのまま進みます）`);
