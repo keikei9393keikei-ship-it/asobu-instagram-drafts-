@@ -1,13 +1,26 @@
 [
-  { "layout": "single", "label": "1人参加", "icon": "person",
-    "headline": "1人で来る人\nが多いです",
-    "body": "はじめての人も毎回います。ひとりで来る人ばかりなので、そこは気にしなくて大丈夫です。" },
+  { "layout": "cover",
+    "headline": "ひとりで\n行っても",
+    "sub": "コートに入れば動き出す",
+    "cta": "5分ごとに試合が変わる" },
 
-  { "layout": "single", "label": "コートの中", "icon": "thumb",
+  { "layout": "single", "label": "① コートの中", "icon": "person",
     "headline": "4人で\n1コート",
-    "body": "ダブルスは4人で組みます。打っているうちに自然と顔なじみになっていきます。" },
+    "body": "ダブルスなので、コートに入れば必ず3人と一緒になります。" },
 
-  { "layout": "single", "label": "過ごし方", "icon": "chat",
+  { "layout": "single", "label": "② 試合の長さ", "icon": "clock",
+    "headline": "1試合は\n5分だけ",
+    "body": "5分で区切って次の試合へ。待っている時間がだらだら続きません。" },
+
+  { "layout": "single", "label": "③ 休憩", "icon": "thumb",
+    "headline": "3ゲームで\n5分休憩",
+    "body": "打って、休んで、また打つ。休憩中に無理に話さなくて大丈夫です。" },
+
+  { "layout": "single", "label": "④ 過ごし方", "icon": "chat",
     "headline": "静かに\n打つ日も",
-    "body": "たくさん話す日も、黙って打つ日もあります。どちらでも過ごせる場所です。" }
+    "body": "たくさん話す日も、黙って打つ日もあります。どちらでも過ごせます。" },
+
+  { "layout": "single", "label": "⑤ 持ち物", "icon": "bag",
+    "headline": "そろえるのは\n2つだけ",
+    "body": "室内用シューズと600円。ラケットは無料で貸し出します。" }
 ]
