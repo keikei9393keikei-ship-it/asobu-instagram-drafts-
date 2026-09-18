@@ -5,8 +5,8 @@
     "cta": "5分ごとに試合が変わる" },
 
   { "layout": "single", "label": "① コートの中", "icon": "person",
-    "headline": "4人で\n1コート",
-    "body": "ダブルスなので、コートに入れば必ず3人と一緒になります。" },
+    "headline": "ダブルスは\n2人1組",
+    "body": "試合は2対2。自分のコート側には、いつでももう1人います。" },
 
   { "layout": "single", "label": "② 試合の長さ", "icon": "clock",
     "headline": "1試合は\n5分だけ",
