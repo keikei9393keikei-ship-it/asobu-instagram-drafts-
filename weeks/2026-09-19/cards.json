@@ -1,26 +1,26 @@
 [
   { "layout": "cover",
-    "headline": "何を着て\n行くか",
-    "sub": "決まっているのは靴だけ",
-    "cta": "用意するものは1つ" },
+    "headline": "日曜の\n2時間",
+    "sub": "何をして過ごすのか",
+    "cta": "19時から21時まで" },
 
-  { "layout": "single", "label": "① 服装", "icon": "person",
-    "headline": "動ける服なら\n大丈夫",
-    "body": "服装に決まりはありません。動きやすい格好で来てください。" },
+  { "layout": "single", "label": "① スタート", "icon": "clock",
+    "headline": "19:00に\n始まります",
+    "body": "着いたら、そのまま打ち始められます。" },
 
-  { "layout": "single", "label": "② 靴", "icon": "bag",
-    "headline": "室内用の\n靴だけ",
-    "body": "体育館で使えるのは室内用だけです。外を歩いていない靴なら大丈夫です。" },
+  { "layout": "single", "label": "② 前半", "icon": "person",
+    "headline": "最初の30分は\nフリー練習",
+    "body": "自由に打つ時間です。感覚を戻してから試合に入れます。" },
 
-  { "layout": "single", "label": "③ ラケット", "icon": "thumb",
-    "headline": "借りられます",
-    "body": "無料で貸し出すので、買ってから来る必要はありません。" },
+  { "layout": "single", "label": "③ 後半", "icon": "thumb",
+    "headline": "19:30ごろ\nから試合",
+    "body": "ダブルスの試合に移ります。ここから終わりまで試合が続きます。" },
 
-  { "layout": "single", "label": "④ 参加費", "icon": "yen",
-    "headline": "会場代だけ",
-    "body": "1回600円です。月会費や入会金はかかりません。" },
+  { "layout": "single", "label": "④ くり返し", "icon": "calcheck",
+    "headline": "5分×3\nそして休憩",
+    "body": "1試合5分を3ゲーム、そのあと5分休憩。これをくり返します。" },
 
-  { "layout": "single", "label": "⑤ 最後に", "icon": "chat",
-    "headline": "靴のことでも\n聞けます",
-    "body": "これで大丈夫か分からないときは、DMで聞いてください。" }
+  { "layout": "single", "label": "⑤ 終わり", "icon": "chat",
+    "headline": "21:00で\n解散です",
+    "body": "片付けて終わり。来られる日だけ来る形なので、次の約束はしません。" }
 ]
