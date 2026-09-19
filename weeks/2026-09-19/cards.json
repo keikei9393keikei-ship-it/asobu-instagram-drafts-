@@ -1,0 +1,26 @@
+[
+  { "layout": "cover",
+    "headline": "何を着て\n行くか",
+    "sub": "決まっているのは靴だけ",
+    "cta": "用意するものは1つ" },
+
+  { "layout": "single", "label": "① 服装", "icon": "person",
+    "headline": "動ける服なら\n大丈夫",
+    "body": "服装に決まりはありません。動きやすい格好で来てください。" },
+
+  { "layout": "single", "label": "② 靴", "icon": "bag",
+    "headline": "室内用の\n靴だけ",
+    "body": "体育館で使えるのは室内用だけです。外を歩いていない靴なら大丈夫です。" },
+
+  { "layout": "single", "label": "③ ラケット", "icon": "thumb",
+    "headline": "借りられます",
+    "body": "無料で貸し出すので、買ってから来る必要はありません。" },
+
+  { "layout": "single", "label": "④ 参加費", "icon": "yen",
+    "headline": "会場代だけ",
+    "body": "1回600円です。月会費や入会金はかかりません。" },
+
+  { "layout": "single", "label": "⑤ 最後に", "icon": "chat",
+    "headline": "靴のことでも\n聞けます",
+    "body": "これで大丈夫か分からないときは、DMで聞いてください。" }
+]
