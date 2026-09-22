@@ -171,6 +171,8 @@ npm run reel                      # リール動画を dist/reels/ に書き出�
   （はみ出しそうなときは描画時に自動で小さくなるが、文字を減らすほうがきれい）
 - `sub` は小さい説明、`badge` は丸い連番、`note` は白い枠（`<b>` で強調できる）
 - `foot` は全場面の下に出る固定文
+- マスコットは `assets/mascot.png`（背景を抜いたキツネ）が全場面の下に自動で入る。
+  跳ねて出てきて、そのあとゆっくり上下する。場面ごとに出し分ける作りにはしていない
 
 **仕組み**：`reel.html` を Playwright で開き、`window.seek(t)` で1フレームずつ描いて撮り、
 ffmpeg でつなぐ。同じ `t` なら必ず同じ絵になるので、何度流しても同じ動画になる。
@@ -190,6 +192,7 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 | `check-dupes.mjs` | 投稿どうしで同じ文を使い回していないか調べる（`npm run dupes`） | 原稿を書いたら通す |
 | `reels/<名前>.json` | リール動画の場面の並び | 動画を足すときはここ |
 | `reel.html` | リールの見た目。`window.renderReel` と `window.seek` を持つ | 見た目を変えるときだけ |
+| `assets/mascot.png` | 背景を抜いたマスコット。リールで使う | 差し替えるときは同じ名前で置く |
 | `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | `main` へのpushでのみ動く |
 | `publish.mjs` | Instagramへの投稿（Pages上の画像URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |

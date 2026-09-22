@@ -34,14 +34,15 @@
     padding:14px 42px;border-radius:999px;display:flex;align-items:center;gap:20px;white-space:nowrap;}
   .pill em{font-style:normal;opacity:.55;}
 
+  /* 下にマスコットを置くので、文字は上寄りの帯の中で中央に来るようにする */
   .scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;padding:0 90px;text-align:center;}
+    justify-content:center;padding:230px 90px 700px;text-align:center;}
 
   /* 太いオレンジの袋文字。白で縁取った層の上に塗りの層を重ねる。
      改行は \n を書いたところだけ。勝手に折り返すと3行になって崩れるので pre にする */
   .head{position:relative;line-height:1.22;font-weight:900;letter-spacing:.01em;}
   .head .stroke,.head .fill{display:block;white-space:pre;}
-  .head .stroke{-webkit-text-stroke:30px #fff;color:#fff;
+  .head .stroke{-webkit-text-stroke:.16em #fff;color:#fff;
     filter:drop-shadow(0 12px 0 rgba(198,110,52,.34)) drop-shadow(0 20px 28px rgba(150,80,40,.22));}
   .head .fill{position:absolute;inset:0;color:var(--accent);}
 
@@ -56,12 +57,12 @@
     box-shadow:0 12px 0 rgba(198,110,52,.20);white-space:pre-line;line-height:1.45;}
   .note b{color:var(--accent2);font-size:58px;}
 
-  .foot{position:absolute;left:0;right:0;bottom:190px;text-align:center;
+  .foot{position:absolute;left:0;right:0;bottom:150px;text-align:center;
     font-weight:700;font-size:38px;color:#7A6152;letter-spacing:.06em;}
 
-  /* マスコットを入れるときはここに画像が入る */
-  .mascot{position:absolute;left:50%;bottom:300px;transform:translateX(-50%);width:430px;}
-  .mascot img{width:100%;display:block;}
+  .mascot{position:absolute;left:50%;bottom:250px;width:420px;transform-origin:50% 100%;}
+  .mascot img{width:100%;display:block;
+    filter:drop-shadow(0 22px 26px rgba(160,95,55,.28));}
 </style>
 </head>
 <body>
@@ -72,6 +73,7 @@
   <div class="confetti" id="confetti"></div>
   <div class="pill">遊部<em>|</em>ASOBU</div>
   <div id="scenes"></div>
+  <div class="mascot" id="mascot"><img src="assets/mascot.png" alt=""></div>
   <div class="foot" id="foot"></div>
 </div>
 
@@ -141,6 +143,14 @@ const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** 時刻 t（秒）の見た目を作る。同じ t なら必ず同じ絵になる */
 window.seek = function (t) {
+  // マスコットは最初に跳ねて出て、そのあとはゆっくり上下する
+  const m = document.getElementById('mascot');
+  const inP = easeOut(clamp01((t - 0.3) / 0.55));
+  const bob = Math.sin(t * 1.9) * 9;
+  m.style.opacity = String(inP);
+  m.style.transform =
+    `translateX(-50%) translateY(${((1 - inP) * 70 + bob).toFixed(2)}px) scale(${(0.86 + inP * 0.14).toFixed(3)})`;
+
   document.querySelectorAll('.scene').forEach((el, i) => {
     const s = SCENES[i];
     const local = t - s.t;
