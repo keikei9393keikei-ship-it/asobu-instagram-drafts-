@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  *{box-sizing:border-box;margin:0;}
+  body{background:#222;}
+
+  /* リールは 1080×1920。Instagramの上下UIを避けるため、文字は安全域の中に置く */
+  #stage{width:1080px;height:1920px;position:relative;overflow:hidden;
+    background:#FBE6D2;font-family:"Zen Maru Gothic",sans-serif;
+    --ink:#4A382A;      /* 本文の焦茶 */
+    --accent:#F0762B;   /* 見出しのオレンジ */
+    --accent2:#E25C12;  /* 濃いオレンジ */
+    --pill:#2A2522;
+  }
+
+  /* 放射状の光。元動画と同じ、中央上から広がる淡いスジ */
+  .rays{position:absolute;left:50%;top:32%;width:2600px;height:2600px;transform:translate(-50%,-50%);
+    background:repeating-conic-gradient(from 0deg,
+      rgba(255,255,255,.42) 0deg 4deg, rgba(255,255,255,0) 4deg 11deg);}
+  .glow{position:absolute;inset:0;
+    background:radial-gradient(120% 70% at 50% 24%, rgba(255,246,236,.95) 0%, rgba(255,232,210,.35) 45%, rgba(246,185,135,.30) 100%);}
+  .warm{position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0) 40%, rgba(240,150,90,.20) 100%);}
+
+  .confetti{position:absolute;inset:0;}
+  .confetti i{position:absolute;display:block;border-radius:50%;}
+
+  .pill{position:absolute;left:50%;top:104px;transform:translateX(-50%);
+    background:var(--pill);color:#fff;font-weight:700;font-size:34px;letter-spacing:.12em;
+    padding:14px 42px;border-radius:999px;display:flex;align-items:center;gap:20px;white-space:nowrap;}
+  .pill em{font-style:normal;opacity:.55;}
+
+  .scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:0 90px;text-align:center;}
+
+  /* 太いオレンジの袋文字。白で縁取った層の上に塗りの層を重ねる。
+     改行は \n を書いたところだけ。勝手に折り返すと3行になって崩れるので pre にする */
+  .head{position:relative;line-height:1.22;font-weight:900;letter-spacing:.01em;}
+  .head .stroke,.head .fill{display:block;white-space:pre;}
+  .head .stroke{-webkit-text-stroke:30px #fff;color:#fff;
+    filter:drop-shadow(0 12px 0 rgba(198,110,52,.34)) drop-shadow(0 20px 28px rgba(150,80,40,.22));}
+  .head .fill{position:absolute;inset:0;color:var(--accent);}
+
+  .sub{margin-top:54px;font-weight:700;font-size:46px;color:var(--ink);letter-spacing:.04em;white-space:pre-line;line-height:1.5;}
+
+  .badge{width:140px;height:140px;border-radius:50%;background:var(--accent);color:#fff;
+    font-weight:900;font-size:78px;display:flex;align-items:center;justify-content:center;
+    margin-bottom:46px;box-shadow:0 12px 0 rgba(190,90,30,.28);}
+
+  .note{margin-top:64px;background:#fff;border:7px solid var(--accent);border-radius:38px;
+    padding:30px 52px;font-weight:700;font-size:44px;color:var(--ink);
+    box-shadow:0 12px 0 rgba(198,110,52,.20);white-space:pre-line;line-height:1.45;}
+  .note b{color:var(--accent2);font-size:58px;}
+
+  .foot{position:absolute;left:0;right:0;bottom:190px;text-align:center;
+    font-weight:700;font-size:38px;color:#7A6152;letter-spacing:.06em;}
+
+  /* マスコットを入れるときはここに画像が入る */
+  .mascot{position:absolute;left:50%;bottom:300px;transform:translateX(-50%);width:430px;}
+  .mascot img{width:100%;display:block;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="glow"></div>
+  <div class="rays"></div>
+  <div class="warm"></div>
+  <div class="confetti" id="confetti"></div>
+  <div class="pill">遊部<em>|</em>ASOBU</div>
+  <div id="scenes"></div>
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+// 紙吹雪。毎回同じ絵になるよう、乱数は固定の種から作る
+(function () {
+  let s = 20260922;
+  const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const colors = ['#F0762B', '#FFFFFF', '#F6B15E', '#FFD9BC'];
+  let html = '';
+  for (let i = 0; i < 46; i++) {
+    const d = 12 + rnd() * 20;
+    html += `<i style="left:${(rnd() * 100).toFixed(2)}%;top:${(rnd() * 100).toFixed(2)}%;
+      width:${d}px;height:${d}px;background:${colors[(rnd() * colors.length) | 0]};
+      opacity:${(0.25 + rnd() * 0.45).toFixed(2)}"></i>`;
+  }
+  document.getElementById('confetti').innerHTML = html;
+})();
+
+const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+const HEAD_MAX_W = 880;   // 見出しが収まってよい幅
+const HEAD_MAX = 186;     // これ以上は大きくしない
+
+/** 最長行の文字数から見出しの文字サイズを見積もる（あとで実測して詰める） */
+function headSize(text) {
+  const longest = Math.max(...String(text).split('\n').map((l) => l.length), 1);
+  return Math.round(Math.min(HEAD_MAX_W / longest, HEAD_MAX));
+}
+
+/** 実際に描いた幅を測り、はみ出していたら収まるまで小さくする */
+function fitHeads() {
+  document.querySelectorAll('.head').forEach((el) => {
+    const stroke = el.querySelector('.stroke');
+    let size = parseFloat(el.style.fontSize);
+    for (let i = 0; i < 40 && stroke.scrollWidth > HEAD_MAX_W; i++) {
+      size -= 4;
+      el.style.fontSize = size + 'px';
+    }
+  });
+}
+
+let SCENES = [];
+
+window.renderReel = function (scenes, foot) {
+  SCENES = scenes;
+  document.getElementById('foot').textContent = foot || '';
+  document.getElementById('scenes').innerHTML = scenes.map((s, i) => {
+    const size = headSize(s.head);
+    return `<div class="scene" data-i="${i}">
+      ${s.badge ? `<div class="badge" data-part="badge">${esc(s.badge)}</div>` : ''}
+      <div class="head" data-part="head" style="font-size:${size}px">
+        <span class="stroke">${esc(s.head)}</span><span class="fill">${esc(s.head)}</span>
+      </div>
+      ${s.sub ? `<div class="sub" data-part="sub">${esc(s.sub)}</div>` : ''}
+      ${s.note ? `<div class="note" data-part="note">${s.note}</div>` : ''}
+    </div>`;
+  }).join('');
+  // 測るあいだだけ全部出しておく
+  document.querySelectorAll('.scene').forEach((el) => (el.style.display = 'flex'));
+  fitHeads();
+  return scenes.length;
+};
+
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+/** 時刻 t（秒）の見た目を作る。同じ t なら必ず同じ絵になる */
+window.seek = function (t) {
+  document.querySelectorAll('.scene').forEach((el, i) => {
+    const s = SCENES[i];
+    const local = t - s.t;
+    const visible = local >= 0 && local < s.d;
+    el.style.display = visible ? 'flex' : 'none';
+    if (!visible) return;
+
+    // 場面の出入り。最後の0.25秒で少し縮めて次へ渡す
+    const out = clamp01((local - (s.d - 0.25)) / 0.25);
+    el.style.opacity = String(1 - out * 0.9);
+
+    const parts = [...el.querySelectorAll('[data-part]')];
+    parts.forEach((p, k) => {
+      const start = 0.06 + k * 0.13;          // 上から順に出す
+      const e = easeOut(clamp01((local - start) / 0.42));
+      p.style.opacity = String(e);
+      p.style.transform = `translateY(${((1 - e) * 46).toFixed(2)}px) scale(${(0.9 + e * 0.1).toFixed(3)})`;
+      if (p.dataset.part === 'badge') p.style.transform += ' translateZ(0)';
+    });
+  });
+};
+</script>
+</body>
+</html>

@@ -147,7 +147,38 @@ npm install
 npx playwright install chromium   # 初回のみ
 npm run render                    # dist/index.html をブラウザで確認
 npm run dupes                     # 使い回している文がないか確認（重複があれば終了コード1）
+npm run reel                      # リール動画を dist/reels/ に書き出す（ffmpeg が要る）
 ```
+
+## 5.5 リール動画（1080×1920・MP4）
+
+カードとは別に、**20秒くらいで読み終わる縦型の動画**を作れる。初心者向けの発信用。
+
+`reels/<名前>.json` に場面を並べ、`npm run reel` で `dist/reels/<名前>.mp4` ができる。
+
+```json
+{
+  "foot": "和歌山市のバドミントンサークル",
+  "scenes": [
+    { "t": 0.0, "d": 3.4, "head": "バドミントン\nはじめる人へ", "sub": "はじめての人向けに\n4つだけ書きます" },
+    { "t": 3.4, "d": 3.3, "badge": "1", "head": "持ち物は\n靴だけ", "sub": "外を歩いていない\n室内用の靴ならOK" }
+  ]
+}
+```
+
+- `t` は開始秒、`d` は表示秒。**全部足して20秒前後**にする（読み切れる長さ）
+- `head` は見出し。`\n` で改行。**勝手に折り返さない**ので、1行7文字くらいまでに区切る
+  （はみ出しそうなときは描画時に自動で小さくなるが、文字を減らすほうがきれい）
+- `sub` は小さい説明、`badge` は丸い連番、`note` は白い枠（`<b>` で強調できる）
+- `foot` は全場面の下に出る固定文
+
+**仕組み**：`reel.html` を Playwright で開き、`window.seek(t)` で1フレームずつ描いて撮り、
+ffmpeg でつなぐ。同じ `t` なら必ず同じ絵になるので、何度流しても同じ動画になる。
+ffmpeg が要る（GitHubの ubuntu ランナーには最初から入っている）。
+
+- **音は入れない。** Instagramのアプリ内で音源を付けるほうが、権利の処理が済んだものを使える
+- **投稿は手動。** `publish.mjs` は画像カルーセル用で、リールには対応していない
+- 文章ルール（§4）はリールにも同じように効く。会場名・LINE・人数は出さない
 
 ## 6. ファイル構成と触ってよい場所
 
@@ -157,6 +188,9 @@ npm run dupes                     # 使い回している文がないか確認�
 | `template.html` | カードの見た目。`window.renderCards(cards)` を持つ | デザイン改修時のみ。参加費600円などが `single` のバンドにハードコードされている |
 | `render.mjs` | Playwright で 1080×1350 PNG 化し `dist/` にPages用サイトを生成 | 仕組み改修時のみ |
 | `check-dupes.mjs` | 投稿どうしで同じ文を使い回していないか調べる（`npm run dupes`） | 原稿を書いたら通す |
+| `reels/<名前>.json` | リール動画の場面の並び | 動画を足すときはここ |
+| `reel.html` | リールの見た目。`window.renderReel` と `window.seek` を持つ | 見た目を変えるときだけ |
+| `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | `main` へのpushでのみ動く |
 | `publish.mjs` | Instagramへの投稿（Pages上の画像URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
 | `.github/workflows/publish.yml` | 投稿を手動実行するワークフロー | 自動では動かない。人がボタンを押す |
