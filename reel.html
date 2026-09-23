@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  *{box-sizing:border-box;margin:0;}
+  body{background:#222;}
+
+  /* リールは 1080×1920。Instagramの上下UIを避けるため、文字は安全域の中に置く */
+  #stage{width:1080px;height:1920px;position:relative;overflow:hidden;
+    background:#FBE6D2;font-family:"Zen Maru Gothic",sans-serif;
+    --ink:#4A382A;      /* 本文の焦茶 */
+    --accent:#F0762B;   /* 見出しのオレンジ */
+    --accent2:#E25C12;  /* 濃いオレンジ */
+    --pill:#2A2522;
+  }
+
+  /* 背景。ゆっくり回して寄せることで、静止画の連続に見えないようにする */
+  .bgwrap{position:absolute;inset:-8%;}
+  .rays{position:absolute;left:50%;top:32%;width:2600px;height:2600px;transform:translate(-50%,-50%);
+    background:repeating-conic-gradient(from 0deg,
+      rgba(255,255,255,.42) 0deg 4deg, rgba(255,255,255,0) 4deg 11deg);}
+  .glow{position:absolute;inset:0;
+    background:radial-gradient(120% 70% at 50% 24%, rgba(255,246,236,.95) 0%, rgba(255,232,210,.35) 45%, rgba(246,185,135,.30) 100%);}
+  .warm{position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0) 40%, rgba(240,150,90,.20) 100%);}
+
+  .confetti{position:absolute;inset:0;}
+  .confetti i{position:absolute;display:block;border-radius:50%;}
+
+  /* 決め場面で走らせる集中線 */
+  .speed{position:absolute;inset:0;opacity:0;}
+  .speed i{position:absolute;height:7px;border-radius:99px;
+    background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.95), rgba(255,255,255,0));}
+
+  /* 数字が出た瞬間の白い閃光 */
+  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;}
+
+  /* 残り時間が見えると最後まで見てもらいやすい */
+  .bar{position:absolute;left:0;top:0;height:9px;background:var(--accent);width:0;}
+
+  .pill{position:absolute;left:50%;top:104px;transform:translateX(-50%);
+    background:var(--pill);color:#fff;font-weight:700;font-size:34px;letter-spacing:.12em;
+    padding:14px 42px;border-radius:999px;display:flex;align-items:center;gap:20px;white-space:nowrap;}
+  .pill em{font-style:normal;opacity:.55;}
+
+  /* 下にマスコットを置くので、文字は上寄りの帯の中で中央に来るようにする */
+  .scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:230px 90px 700px;text-align:center;
+    will-change:transform,opacity;}
+
+  /* 太いオレンジの袋文字。白で縁取った層の上に塗りの層を重ねる。
+     行ごとに包むと、行を1つずつ出せるうえ、塗りの位置もずれない */
+  .head{position:relative;font-weight:900;letter-spacing:.01em;font-variant-numeric:tabular-nums;}
+  .hline{position:relative;line-height:1.22;white-space:pre;will-change:transform,opacity;}
+  .hline .stroke{display:block;-webkit-text-stroke:.16em #fff;color:#fff;
+    filter:drop-shadow(0 12px 0 rgba(198,110,52,.34)) drop-shadow(0 20px 28px rgba(150,80,40,.22));}
+  .hline .fill{position:absolute;inset:0;color:var(--accent);}
+
+  .sub{margin-top:54px;font-weight:700;font-size:46px;color:var(--ink);letter-spacing:.04em;white-space:pre-line;line-height:1.5;}
+
+  .badge{width:140px;height:140px;border-radius:50%;background:var(--accent);color:#fff;
+    font-weight:900;font-size:78px;display:flex;align-items:center;justify-content:center;
+    margin-bottom:46px;box-shadow:0 12px 0 rgba(190,90,30,.28);}
+
+  .note{margin-top:64px;background:#fff;border:7px solid var(--accent);border-radius:38px;
+    padding:30px 52px;font-weight:700;font-size:44px;color:var(--ink);
+    box-shadow:0 12px 0 rgba(198,110,52,.20);white-space:pre-line;line-height:1.45;}
+  .note b{color:var(--accent2);font-size:58px;}
+
+  .foot{position:absolute;left:0;right:0;bottom:150px;text-align:center;
+    font-weight:700;font-size:38px;color:#7A6152;letter-spacing:.06em;}
+
+  .mascot{position:absolute;left:50%;bottom:250px;width:420px;transform-origin:50% 100%;}
+  .mascot img{width:100%;display:block;
+    filter:drop-shadow(0 22px 26px rgba(160,95,55,.28));}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="bgwrap" id="bgwrap">
+    <div class="glow"></div>
+    <div class="rays" id="rays"></div>
+    <div class="warm"></div>
+  </div>
+  <div class="confetti" id="confetti"></div>
+  <div class="speed" id="speed"></div>
+  <div class="pill">遊部<em>|</em>ASOBU</div>
+  <div id="scenes"></div>
+  <div class="mascot" id="mascot"><img src="assets/mascot.png" alt=""></div>
+  <div class="foot" id="foot"></div>
+  <div class="flash" id="flash"></div>
+  <div class="bar" id="bar"></div>
+</div>
+
+<script>
+// 紙吹雪と集中線。毎回同じ絵になるよう、乱数は固定の種から作る
+(function () {
+  let s = 20260922;
+  const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const colors = ['#F0762B', '#FFFFFF', '#F6B15E', '#FFD9BC'];
+  let c = '';
+  for (let i = 0; i < 46; i++) {
+    const d = 12 + rnd() * 20;
+    c += `<i style="left:${(rnd() * 100).toFixed(2)}%;top:${(rnd() * 100).toFixed(2)}%;
+      width:${d}px;height:${d}px;background:${colors[(rnd() * colors.length) | 0]};
+      opacity:${(0.25 + rnd() * 0.45).toFixed(2)}"></i>`;
+  }
+  document.getElementById('confetti').innerHTML = c;
+
+  let sp = '';
+  for (let i = 0; i < 16; i++) {
+    sp += `<i data-sp="${i}" style="top:${(rnd() * 100).toFixed(2)}%;
+      width:${(280 + rnd() * 420).toFixed(0)}px;opacity:${(0.4 + rnd() * 0.5).toFixed(2)}"></i>`;
+  }
+  document.getElementById('speed').innerHTML = sp;
+})();
+
+const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+/** 行き過ぎてから戻る動き。ぱきっと出したいときに使う */
+const easeBack = (p) => { const c = 1.9; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+
+const HEAD_MAX_W = 880;
+const HEAD_MAX = 186;
+
+function headSize(text) {
+  const longest = Math.max(...String(text).split('\n').map((l) => l.length), 1);
+  return Math.round(Math.min(HEAD_MAX_W / longest, HEAD_MAX));
+}
+
+function fitHeads() {
+  document.querySelectorAll('.head').forEach((el) => {
+    let size = parseFloat(el.style.fontSize);
+    const widest = () => Math.max(...[...el.querySelectorAll('.stroke')].map((s) => s.scrollWidth));
+    for (let i = 0; i < 40 && widest() > HEAD_MAX_W; i++) {
+      size -= 4;
+      el.style.fontSize = size + 'px';
+    }
+  });
+}
+
+let SCENES = [];
+let TOTAL = 0;
+
+/** countTo がある場面は、見出しの {n} を数字に差し替えて使う */
+const headText = (s, n) => String(s.head).replace('{n}', n == null ? (s.countTo ?? '') : n);
+
+window.renderReel = function (scenes, foot) {
+  SCENES = scenes;
+  TOTAL = scenes.reduce((end, s) => Math.max(end, s.t + s.d), 0);
+  document.getElementById('foot').textContent = foot || '';
+  document.getElementById('scenes').innerHTML = scenes.map((s, i) => {
+    const full = headText(s);                 // 文字寸法は数え終わった状態で決める
+    const lines = full.split('\n');
+    return `<div class="scene" data-i="${i}">
+      ${s.badge ? `<div class="badge" data-part="badge">${esc(s.badge)}</div>` : ''}
+      <div class="head" data-part="head" style="font-size:${headSize(full)}px">
+        ${lines.map((l) => `<div class="hline"><span class="stroke">${esc(l)}</span><span class="fill">${esc(l)}</span></div>`).join('')}
+      </div>
+      ${s.sub ? `<div class="sub" data-part="sub">${esc(s.sub)}</div>` : ''}
+      ${s.note ? `<div class="note" data-part="note">${s.note}</div>` : ''}
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.scene').forEach((el) => (el.style.display = 'flex'));
+  fitHeads();
+  return scenes.length;
+};
+
+/** 時刻 t（秒）の見た目を作る。同じ t なら必ず同じ絵になる */
+window.seek = function (t) {
+  // 背景はゆっくり回しながら寄せる。場面が切り替わっても絵が動き続ける
+  document.getElementById('rays').style.transform =
+    `translate(-50%,-50%) rotate(${(t * 1.15).toFixed(3)}deg)`;
+  document.getElementById('bgwrap').style.transform = `scale(${(1 + t * 0.006).toFixed(4)})`;
+  document.getElementById('bar').style.width = `${(clamp01(t / TOTAL) * 100).toFixed(2)}%`;
+
+  let flash = 0;
+  let speedOn = 0;
+  let sceneJustStarted = 0;
+
+  document.querySelectorAll('.scene').forEach((el, i) => {
+    const s = SCENES[i];
+    const local = t - s.t;
+    const IN = 0.42, OUT = 0.3;
+    const visible = local >= -0.02 && local < s.d;
+    el.style.display = visible ? 'flex' : 'none';
+    if (!visible) return;
+
+    // 場面ごと：右から入って、左へ抜ける。間はゆっくり寄り続ける
+    const ein = easeBack(clamp01(local / IN));
+    const eout = easeInOut(clamp01((local - (s.d - OUT)) / OUT));
+    const x = (1 - ein) * 110 - eout * 90;
+    const push = 1 + (local / s.d) * 0.05;          // じわっと寄る
+    el.style.opacity = String(clamp01(local / 0.18) * (1 - eout));
+    el.style.transform = `translateX(${x.toFixed(2)}px) scale(${(push * (0.95 + ein * 0.05) * (1 - eout * 0.04)).toFixed(4)})`;
+
+    // 見出しは行ごとに、少しずらして出す
+    const lines = [...el.querySelectorAll('.hline')];
+    lines.forEach((ln, k) => {
+      const e = easeBack(clamp01((local - (0.10 + k * 0.11)) / 0.34));
+      ln.style.opacity = String(clamp01((local - (0.10 + k * 0.11)) / 0.16));
+      ln.style.transform = `translateY(${((1 - e) * 40).toFixed(2)}px) scale(${(0.7 + e * 0.3).toFixed(3)})`;
+    });
+
+    // 見出し以外（連番・説明・白枠）は見出しのあとに続ける
+    const after = 0.10 + lines.length * 0.11;
+    el.querySelectorAll('[data-part]').forEach((p) => {
+      if (p.dataset.part === 'head') return;
+      const isBadge = p.dataset.part === 'badge';
+      const start = isBadge ? 0.02 : after + 0.06;
+      const e = easeOut(clamp01((local - start) / 0.38));
+      p.style.opacity = String(e);
+      p.style.transform = `translateY(${((1 - e) * 34).toFixed(2)}px) scale(${(0.92 + e * 0.08).toFixed(3)})`;
+    });
+
+    // 数字を数え上げる。最後の3割は止めて見せる
+    if (s.countTo != null) {
+      const p = easeOut(clamp01((local - 0.25) / (s.d * 0.55)));
+      const n = Math.round(s.countTo * p);
+      const txt = headText(s, n).split('\n');
+      lines.forEach((ln, k) => {
+        if (ln.dataset.txt === txt[k]) return;
+        ln.dataset.txt = txt[k];
+        ln.querySelector('.stroke').textContent = txt[k];
+        ln.querySelector('.fill').textContent = txt[k];
+      });
+      if (p >= 1) flash = Math.max(flash, 0);
+    }
+
+    if (s.fx === 'speed') speedOn = Math.max(speedOn, Math.sin(clamp01(local / s.d) * Math.PI));
+    if (s.fx === 'flash' || s.countTo != null) {
+      // 出た直後に一瞬だけ白を入れる
+      flash = Math.max(flash, Math.max(0, 1 - Math.abs(local - 0.30) / 0.16) * 0.5);
+    }
+    if (local < 0.3) sceneJustStarted = Math.max(sceneJustStarted, 1 - local / 0.3);
+  });
+
+  // 集中線は左右から流す
+  const sp = document.getElementById('speed');
+  sp.style.opacity = String(speedOn * 0.55);
+  if (speedOn > 0) {
+    sp.querySelectorAll('i').forEach((el, i) => {
+      const dir = i % 2 ? 1 : -1;
+      const phase = ((t * 1.6 + i * 0.37) % 1);
+      el.style.left = dir > 0 ? `${(-30 + phase * 160).toFixed(1)}%` : 'auto';
+      el.style.right = dir > 0 ? 'auto' : `${(-30 + phase * 160).toFixed(1)}%`;
+    });
+  }
+
+  document.getElementById('flash').style.opacity = flash.toFixed(3);
+
+  // マスコットは出てきたあと上下に揺れ、場面が変わるたびに小さく跳ねる
+  const m = document.getElementById('mascot');
+  const inP = easeOut(clamp01((t - 0.25) / 0.5));
+  const bob = Math.sin(t * 1.9) * 9;
+  const hop = sceneJustStarted * 26;
+  const squash = 1 + sceneJustStarted * 0.06;
+  m.style.opacity = String(inP);
+  m.style.transform =
+    `translateX(-50%) translateY(${((1 - inP) * 70 + bob - hop).toFixed(2)}px) ` +
+    `scale(${(0.86 + inP * 0.14).toFixed(3)}, ${((0.86 + inP * 0.14) * squash).toFixed(3)})`;
+};
+</script>
+</body>
+</html>

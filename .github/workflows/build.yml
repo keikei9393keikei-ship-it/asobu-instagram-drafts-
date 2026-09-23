@@ -36,6 +36,12 @@ jobs:
       - name: Render cards
         run: npm run render
 
+      # リール動画も Pages に置く。Instagram は動画ファイルを直接受け取れず、
+      # 公開URLを渡す方式なので、ここで出しておかないと投稿できない。
+      # ubuntu ランナーには ffmpeg が最初から入っている。
+      - name: Render reels
+        run: npm run reel
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
