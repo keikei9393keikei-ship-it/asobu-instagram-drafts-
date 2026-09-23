@@ -66,12 +66,17 @@ async function renderOne(browser, name) {
   await page.close();
 
   const out = path.join(DIST, `${name}.mp4`);
+  // Instagram のリールは音声トラックのない動画を受け付けないことがあるので、
+  // 無音のAACを1本入れておく。音はアプリ側で付ける前提（§5.5）。
   await run(FFMPEG, [
     '-y', '-loglevel', 'error',
     '-framerate', String(FPS),
     '-i', path.join(tmp, 'f_%05d.png'),
+    '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+    '-shortest',
     '-c:v', 'libx264', '-profile:v', 'high', '-crf', '18',
     '-pix_fmt', 'yuv420p', '-r', '30',
+    '-c:a', 'aac', '-b:a', '96k',
     '-movflags', '+faststart',
     out,
   ]);

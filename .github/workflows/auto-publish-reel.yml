@@ -1,0 +1,45 @@
+name: auto-publish-reel
+
+# reels/ の中に「今日の日付」が入ったものがあれば、夕方に自動でリールを投稿する。
+# 日付は reels/<名前>.json の date に書く。無ければ何もせず終わる。
+#
+# カードの自動投稿（auto-publish.yml）とは別にしてある。出す時間帯が違うため。
+#   カード … 21:00〜23:00 JST
+#   リール … 18:00〜21:00 JST
+# 同じ日にカードとリールの両方があっても、出る時間がずれるので並ばない。
+#
+# GitHubのcronは時刻どおりに発火しないので、毎時起動して
+# 時間帯に入った回だけが投稿する（判定は publish-reel.mjs 側）。
+on:
+  schedule:
+    # auto-publish.yml が 7分、こちらは 23分。同時に走らせない
+    - cron: '23 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: instagram-publish     # カードの投稿と同じ群。同時に投稿しない
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Publish today's reel (if any)
+        env:
+          MODE: scheduled
+          # 手動実行は「今すぐ出したい」ときなので、時間帯の判定を飛ばす
+          IGNORE_WINDOW: ${{ github.event_name == 'workflow_dispatch' }}
+          PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || 'https://keikei9393keikei-ship-it.github.io/asobu-instagram-drafts-' }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_API_VERSION: ${{ vars.IG_API_VERSION }}
+        run: node publish-reel.mjs

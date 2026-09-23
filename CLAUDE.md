@@ -192,9 +192,27 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 **出力は 30fps・600フレーム**（24fpsで撮って30fpsに変換している）。
 フレーム番号で中身を確かめるときは30で割ると秒になる。
 
-- **音は入れない。** Instagramのアプリ内で音源を付けるほうが、権利の処理が済んだものを使える
-- **投稿は手動。** `publish.mjs` は画像カルーセル用で、リールには対応していない
+- **BGMは入れない。** Instagramのアプリ内で音源を付けるほうが、権利の処理が済んだものを使える。
+  ただし**無音のAAC音声だけは埋め込んである**（Instagramが音声トラックのない動画を
+  受け付けないことがあるため）
 - 文章ルール（§4）はリールにも同じように効く。会場名・LINE・人数は出さない
+
+### リールの自動投稿（§7.6）
+
+`reels/<名前>.json` に **`date`（投稿予定日）と `caption`** を書いておくと、
+`auto-publish-reel` がその日の**夕方に自動で投稿する**。
+
+```json
+{ "date": "2026-09-23", "caption": "こんばんは！和歌山市で…", "foot": "…", "scenes": [ … ] }
+```
+
+- **出る時間帯はカードと分けてある。** カードは21〜23時、**リールは18〜21時**。
+  同じ日に両方あっても並ばない（`REEL_FROM_JST` / `REEL_TO_JST` で変えられる）
+- `publish-reel.mjs` が投稿する。`media_type=REELS` で **Pages上の動画URL**を渡す方式なので、
+  先に build-cards（`npm run reel` を含む）の成功とPagesの公開が必要
+- キャプションのチェックはカードと同じ（名乗り・会場名・文字数・ハッシュタグ数）
+- 二重投稿の保険も同じ（直近10件のキャプションと突き合わせ）
+- `npm run reel:check` で手元の確認だけできる（`REEL=<名前>` が要る）
 
 ## 6. ファイル構成と触ってよい場所
 
@@ -208,6 +226,8 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 | `reel.html` | リールの見た目。`window.renderReel` と `window.seek` を持つ | 見た目を変えるときだけ |
 | `assets/mascot.png` | 背景を抜いたマスコット。リールで使う | 差し替えるときは同じ名前で置く |
 | `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
+| `publish-reel.mjs` | リールの投稿（Pages上の動画URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
+| `.github/workflows/auto-publish-reel.yml` | リールの自動投稿（毎時・18〜21時JSTの回だけ） | カードとは別の時間帯 |
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | `main` へのpushでのみ動く |
 | `publish.mjs` | Instagramへの投稿（Pages上の画像URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
 | `.github/workflows/publish.yml` | 投稿を手動実行するワークフロー | 自動では動かない。人がボタンを押す |
