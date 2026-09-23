@@ -147,8 +147,18 @@ function fitHeads() {
 let SCENES = [];
 let TOTAL = 0;
 
-/** countTo がある場面は、見出しの {n} を数字に差し替えて使う */
-const headText = (s, n) => String(s.head).replace('{n}', n == null ? (s.countTo ?? '') : n);
+/** countTo がある場面は、見出しの {n} を数字に差し替えて使う。
+ *  countFrom を書くとそこから数える（書かなければ0から）。
+ *  n を省いたときは桁数の多いほうを返す。文字寸法はいちばん長い状態で決めたいため */
+const countStart = (s) => (s.countFrom == null ? 0 : s.countFrom);
+const headText = (s, n) => {
+  if (n == null) {
+    const a = String(s.countTo ?? '');
+    const b = String(countStart(s));
+    n = s.countTo == null ? '' : (b.length > a.length ? b : a);
+  }
+  return String(s.head).replace('{n}', n);
+};
 
 window.renderReel = function (scenes, foot) {
   SCENES = scenes;
@@ -221,7 +231,8 @@ window.seek = function (t) {
     // 数字を数え上げる。最後の3割は止めて見せる
     if (s.countTo != null) {
       const p = easeOut(clamp01((local - 0.25) / (s.d * 0.55)));
-      const n = Math.round(s.countTo * p);
+      const from = countStart(s);
+      const n = Math.round(from + (s.countTo - from) * p);
       const txt = headText(s, n).split('\n');
       lines.forEach((ln, k) => {
         if (ln.dataset.txt === txt[k]) return;
