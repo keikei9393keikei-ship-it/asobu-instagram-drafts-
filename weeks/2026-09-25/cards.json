@@ -1,0 +1,22 @@
+[
+  { "layout": "cover",
+    "headline": "遊部\nASOBU",
+    "sub": "和歌山市のバドミントンサークル",
+    "cta": "未経験から始められます" },
+
+  { "layout": "single", "label": "遊部について", "icon": "person",
+    "headline": "週1回\n続けています",
+    "body": "和歌山市内の体育館で、ダブルスの練習と試合をしています。1人で来る人が多いです。" },
+
+  { "layout": "single", "label": "はじめての方へ", "icon": "chat",
+    "headline": "1人でも\n入りやすい",
+    "body": "はじめての人もいつも来ています。来た日からダブルスに加わります。" },
+
+  { "layout": "single", "label": "持ち物", "icon": "bag",
+    "headline": "靴だけで\n始められます",
+    "body": "そろえるのは室内用のシューズだけです。ラケットは無料で貸し出します。" },
+
+  { "layout": "single", "label": "参加のしかた", "icon": "calcheck",
+    "headline": "今からでも\n始められます",
+    "body": "DMをもらったら、活動日と会場を個別にお伝えします。体験だけの参加もできます。" }
+]
