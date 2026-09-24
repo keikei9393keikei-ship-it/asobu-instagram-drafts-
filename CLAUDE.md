@@ -192,9 +192,14 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 **出力は 30fps・600フレーム**（24fpsで撮って30fpsに変換している）。
 フレーム番号で中身を確かめるときは30で割ると秒になる。
 
-- **BGMは入れない。** Instagramのアプリ内で音源を付けるほうが、権利の処理が済んだものを使える。
+- **BGM・ナレーションは入れない。** Instagramのアプリ内で音源を付けるほうが、権利の処理が済んだものを使える。
   ただし**無音のAAC音声だけは埋め込んである**（Instagramが音声トラックのない動画を
   受け付けないことがあるため）
+- **効果音（SE）は `npm run reel:se` で足せる。** `render-reel-se.mjs` が ffmpeg で
+  whoosh・chime・popを合成して乗せる（誰の権利にも触れない自前の音）ので、BGMとは別扱い。
+  場面が変わるたびに whoosh、`fx:"flash"` や `countTo` がある場面は閃光のピークに chime、
+  `note` がある場面は白い枠が出るタイミングに pop が鳴る。**`npm run reel` で動画を作ったあとに
+  1本ずつ・または全部まとめて重ねる**（`-- <名前>` で1本だけ）。入れるかどうかは動画ごとに選べる
 - 文章ルール（§4）はリールにも同じように効く。会場名・LINE・人数は出さない
 
 ### リールの自動投稿（§7.6）
@@ -230,6 +235,7 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 | `reel.html` | リールの見た目。`window.renderReel` と `window.seek` を持つ | 見た目を変えるときだけ |
 | `assets/mascot.png` | 背景を抜いたマスコット。リールで使う | 差し替えるときは同じ名前で置く |
 | `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
+| `render-reel-se.mjs` | 効果音（whoosh/chime/pop）を合成して重ねる（`npm run reel:se`） | 仕組み改修時のみ |
 | `publish-reel.mjs` | リールの投稿（Pages上の動画URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
 | `.github/workflows/auto-publish-reel.yml` | リールの自動投稿（毎時・18〜21時JSTの回だけ） | カードとは別の時間帯 |
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | `main` へのpushでのみ動く |
