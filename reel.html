@@ -61,6 +61,10 @@
 
   .sub{margin-top:54px;font-weight:700;font-size:46px;color:var(--ink);letter-spacing:.04em;white-space:pre-line;line-height:1.5;}
 
+  /* 見出しの上に置く小さな札（例「次回の活動」）。連番と同じく見出しより先に出す */
+  .kicker{background:var(--accent);color:#fff;font-weight:900;font-size:64px;letter-spacing:.08em;
+    padding:16px 54px;border-radius:999px;margin-bottom:44px;box-shadow:0 10px 0 rgba(190,90,30,.28);}
+
   .badge{width:140px;height:140px;border-radius:50%;background:var(--accent);color:#fff;
     font-weight:900;font-size:78px;display:flex;align-items:center;justify-content:center;
     margin-bottom:46px;box-shadow:0 12px 0 rgba(190,90,30,.28);}
@@ -174,6 +178,7 @@ window.renderReel = function (scenes, foot) {
     const lines = full.split('\n');
     return `<div class="scene" data-i="${i}">
       ${s.badge ? `<div class="badge" data-part="badge">${esc(s.badge)}</div>` : ''}
+      ${s.kicker ? `<div class="kicker" data-part="kicker">${esc(s.kicker)}</div>` : ''}
       <div class="head" data-part="head" style="font-size:${headSize(full)}px">
         ${lines.map((l) => `<div class="hline"><span class="stroke">${esc(l)}</span><span class="fill">${esc(l)}</span></div>`).join('')}
       </div>
@@ -227,7 +232,7 @@ window.seek = function (t) {
     const after = 0.10 + lines.length * 0.11;
     el.querySelectorAll('[data-part]').forEach((p) => {
       if (p.dataset.part === 'head') return;
-      const isBadge = p.dataset.part === 'badge';
+      const isBadge = p.dataset.part === 'badge' || p.dataset.part === 'kicker';
       const start = isBadge ? 0.02 : after + 0.06;
       const e = easeOut(clamp01((local - start) / 0.38));
       p.style.opacity = String(e);
