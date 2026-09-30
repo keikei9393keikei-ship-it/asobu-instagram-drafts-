@@ -29,6 +29,8 @@ async function renderOne(browser, name) {
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
   await page.goto(TEMPLATE_URL, { waitUntil: 'networkidle' });
   await page.addStyleTag({ content: '.bar{display:none !important;}' });
+  // 表紙など、1枚だけ見た目を変えたいときは spec.css に書く（例：札を大きくする）
+  if (spec.css) await page.addStyleTag({ content: spec.css });
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate((s) => window.renderReel([s.scene], s.foot), { scene, foot: spec.foot });
   await page.evaluate(async () => {
