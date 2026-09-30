@@ -8,6 +8,10 @@
 // 誰の権利にも触れない。まず `npm run reel` で無音の動画を作ってから、
 // このスクリプトで同じファイルに上書きする。
 //
+// 声（ずんだもんなど）を入れたいときは voices/<名前>/ に WAV/MP3 を場面の順に置く
+// （01.wav, 02.wav … が1番目、2番目の場面）。各場面の頭に重ね、場面より長ければ
+// 最大1.3倍まで速める。声が入るぶん、効果音は控えめにして声を聞き取りやすくする。
+//
 // 効果音を置くタイミングは reel.html の seek(t) の計算をなぞっている
 // （local = 場面が始まってからの秒数）：
 //   - 場面が変わるたびに whoosh
@@ -72,6 +76,26 @@ async function synth(tmp) {
   return { whoosh, chime, pop };
 }
 
+const AUDIO_RE = /\.(wav|mp3|m4a|aac|ogg)$/i;
+const VOICES_ROOT = process.env.VOICES_DIR || path.join(ROOT, 'voices');
+
+function probeSeconds(file) {
+  return new Promise((resolve, reject) => {
+    const p = spawn('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', file]);
+    let out = '';
+    p.stdout.on('data', (d) => (out += d));
+    p.on('error', reject);
+    p.on('close', () => resolve(Number(out.trim()) || 0));
+  });
+}
+
+/** voices/<名前>/ の音声ファイルを、名前順に並べて返す */
+async function listVoices(name) {
+  const dir = path.join(VOICES_ROOT, name);
+  if (!existsSync(dir)) return [];
+  return (await readdir(dir)).filter((f) => AUDIO_RE.test(f)).sort().map((f) => path.join(dir, f));
+}
+
 async function addSe(name, se) {
   const specPath = path.join(SRC, `${name}.json`);
   const videoPath = path.join(DIST, `${name}.mp4`);
@@ -93,12 +117,30 @@ async function addSe(name, se) {
     }
   }
 
+  // 声：i番目のファイルを i番目の場面の頭（+0.15秒）に置く。長すぎれば速める
+  const voices = await listVoices(name);
+  if (voices.length && voices.length !== spec.scenes.length) {
+    console.log(`  ⚠️ ${name}: 声が${voices.length}個、場面が${spec.scenes.length}個。先頭から順に当てます`);
+  }
+  const voiceHits = [];
+  for (const [i, file] of voices.slice(0, spec.scenes.length).entries()) {
+    const sc = spec.scenes[i];
+    const room = sc.d - 0.25;                       // 場面の終わりの手前までに収めたい
+    const len = await probeSeconds(file);
+    const tempo = len > room ? Math.min(1.3, len / room) : 1;
+    if (len / tempo > room + 0.05) console.log(`  ⚠️ ${name}: ${i + 1}番目の声が場面より長いです（${len.toFixed(1)}秒 > ${sc.d}秒）。短く録り直してください`);
+    voiceHits.push({ file, atMs: Math.round((sc.t + 0.15) * 1000), tempo });
+  }
+  const seGain = voiceHits.length ? 0.55 : 1;      // 声があるときは効果音を小さく
+
   const tmp = await mkdtemp(path.join(os.tmpdir(), 'asobu-se-'));
   try {
-    const inputs = hits.flatMap((h) => ['-i', h.file]);
-    const chains = hits.map((h, i) => `[${i}:a]adelay=${h.atMs}|${h.atMs}[s${i}]`).join(';');
-    const labels = hits.map((_, i) => `[s${i}]`).join('');
-    const filter = `${chains};${labels}amix=inputs=${hits.length}:duration=longest:normalize=0,` +
+    const all = [...hits.map((h) => ({ ...h, gain: seGain, tempo: 1 })), ...voiceHits.map((h) => ({ ...h, gain: 1 }))];
+    const inputs = all.flatMap((h) => ['-i', h.file]);
+    const chains = all.map((h, i) =>
+      `[${i}:a]aformat=sample_rates=44100:channel_layouts=mono,${h.tempo !== 1 ? `atempo=${h.tempo.toFixed(3)},` : ''}volume=${h.gain},adelay=${h.atMs}|${h.atMs}[s${i}]`).join(';');
+    const labels = all.map((_, i) => `[s${i}]`).join('');
+    const filter = `${chains};${labels}amix=inputs=${all.length}:duration=longest:normalize=0,` +
       `apad=whole_dur=${total},atrim=0:${total},alimiter=limit=0.9`;
     const mixed = path.join(tmp, 'mixed.wav');
     await run(FFMPEG, ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', filter, mixed]);
@@ -111,7 +153,7 @@ async function addSe(name, se) {
       out]);
     await rm(videoPath, { force: true });
     await run('cp', [out, videoPath]);
-    console.log(`  ${name}: 効果音 ${hits.length}個 -> dist/reels/${name}.mp4`);
+    console.log(`  ${name}: 効果音 ${hits.length}個${voiceHits.length ? ` + 声 ${voiceHits.length}個` : ''} -> dist/reels/${name}.mp4`);
   } finally {
     await rm(tmp, { recursive: true, force: true });
   }
