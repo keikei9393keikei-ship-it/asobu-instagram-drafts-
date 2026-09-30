@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+  /* 自分で撮った映像の上に重ねるテロップ。背景は透明で書き出す。
+     Instagramの下側のUI（いいね・キャプション）にかからないよう、上寄りに置く */
+  *{box-sizing:border-box;margin:0;}
+  html,body{background:transparent;}
+  #stage{width:1080px;height:1920px;position:relative;overflow:hidden;
+    font-family:"Zen Maru Gothic",sans-serif;--accent:#F0762B;--ink:#3F3027;}
+  .box{position:absolute;left:60px;right:60px;top:300px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .kicker{background:var(--accent);color:#fff;font-weight:900;font-size:60px;letter-spacing:.08em;
+    padding:12px 50px;border-radius:999px;margin-bottom:36px;
+    box-shadow:0 8px 0 rgba(150,60,10,.35),0 14px 30px rgba(0,0,0,.25);}
+  .head{font-weight:900;line-height:1.2;}
+  .hline{position:relative;white-space:pre;}
+  /* 映像の上でも読めるよう、白い縁を太めにして下に影を落とす */
+  .hline .stroke{display:block;-webkit-text-stroke:.2em #fff;color:#fff;
+    filter:drop-shadow(0 10px 0 rgba(120,50,10,.45)) drop-shadow(0 18px 30px rgba(0,0,0,.35));}
+  .hline .fill{position:absolute;inset:0;color:var(--accent);}
+  .sub{margin-top:40px;background:#fff;color:var(--ink);font-weight:700;font-size:48px;
+    padding:14px 40px;border-radius:24px;box-shadow:0 10px 26px rgba(0,0,0,.25);}
+  .small{margin-top:22px;color:#fff;font-weight:700;font-size:34px;
+    background:rgba(40,25,15,.72);padding:8px 26px;border-radius:999px;}
+</style>
+</head>
+<body>
+<div id="stage"><div class="box" id="box"></div></div>
+<script>
+const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const MAX_W = 960, MAX = 200;
+window.renderTelop = function (it) {
+  const lines = String(it.head).split('\n');
+  document.getElementById('box').innerHTML = `
+    ${it.kicker ? `<div class="kicker">${esc(it.kicker)}</div>` : ''}
+    <div class="head" id="head" style="font-size:${MAX}px">${lines.map((l) =>
+      `<div class="hline"><span class="stroke">${esc(l)}</span><span class="fill">${esc(l)}</span></div>`).join('')}</div>
+    ${it.sub ? `<div class="sub">${esc(it.sub)}</div>` : ''}
+    ${it.small ? `<div class="small">${esc(it.small)}</div>` : ''}`;
+  // いちばん長い行が幅に収まるまで文字を小さくする
+  const head = document.getElementById('head');
+  let size = MAX;
+  const widest = () => Math.max(...[...head.querySelectorAll('.stroke')].map((s) => s.scrollWidth));
+  while (widest() > MAX_W && size > 80) { size -= 4; head.style.fontSize = size + 'px'; }
+  return size;
+};
+</script>
+</body>
+</html>

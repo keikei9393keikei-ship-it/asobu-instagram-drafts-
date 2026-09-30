@@ -9,7 +9,8 @@
     "reel": "node render-reel.mjs",
     "reel:se": "node render-reel-se.mjs",
     "reel:check": "MODE=check node publish-reel.mjs",
-    "story": "node render-story.mjs"
+    "story": "node render-story.mjs",
+    "telop": "node render-telop.mjs"
   },
   "devDependencies": {
     "playwright": "^1.48.2"

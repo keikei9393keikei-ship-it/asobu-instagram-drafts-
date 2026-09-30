@@ -220,6 +220,13 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 - 文章ルール（§4）はここでも同じ。会場名は出さず「場所はDMでお伝えします」とする
 - 投稿は手動（ストーリーはAPIで予約できない）
 
+### 撮影した動画に重ねるテロップ（透明PNG）
+
+本人が撮った映像に、編集アプリで画像として重ねる見出し。`telops/<名前>.json` の `items` に
+`head`（必須）・`kicker`・`sub`・`small` を並べ、`npm run telop` で `dist/telops/<名前>/01.png…` ができる
+（1080×1920・背景透明・見出しは上寄りに置いてあり、Instagramの下側のUIにかからない）。
+見た目はリールの見出しと同じ。文章ルール（§4）はここでも同じ。
+
 ### リールの自動投稿（§7.6）
 
 ⚠️ **いまリールの自動投稿は止めてある（2026-09-23）。** リールは本人が手動で貼る運用。
@@ -255,6 +262,7 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 | `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
 | `render-reel-se.mjs` | 効果音（whoosh/chime/pop）を合成して重ねる（`npm run reel:se`） | 仕組み改修時のみ |
 | `stories/<活動日>.json` / `render-story.mjs` | ストーリー用の静止画（`npm run story`） | 告知のたびに1つ足す |
+| `telops/<名前>.json` / `telop.html` / `render-telop.mjs` | 撮影動画に重ねる透明テロップ（`npm run telop`） | 台本ができたら1つ足す |
 | `publish-reel.mjs` | リールの投稿（Pages上の動画URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
 | `.github/workflows/auto-publish-reel.yml` | リールの自動投稿（毎時・18〜21時JSTの回だけ） | カードとは別の時間帯 |
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | `main` へのpushでのみ動く |
