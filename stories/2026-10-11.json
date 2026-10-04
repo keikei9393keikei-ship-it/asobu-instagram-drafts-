@@ -1,0 +1,10 @@
+{
+  "foot": "和歌山市のバドミントンサークル",
+  "scene": {
+    "kicker": "次回のバドミントン",
+    "head": "10/11(日)\n19時〜21時",
+    "sub": "和歌山市内の体育館で",
+    "note": "場所は <b>DM</b> でお伝えします\nラケット・シャトルは無料\n持ち物は室内用の靴だけ\n参加費は会場代600円"
+  },
+  "css": ".scene{padding-top:200px !important;padding-bottom:560px !important;}\n.mascot{width:300px !important;bottom:150px !important;}\n.foot{bottom:80px !important;}"
+}

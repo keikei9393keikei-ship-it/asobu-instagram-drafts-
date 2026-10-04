@@ -1,0 +1,10 @@
+{
+  "foot": "和歌山市のバドミントンサークル",
+  "css": ".scene{padding-top:200px !important;padding-bottom:560px !important;}\n.mascot{width:300px !important;bottom:150px !important;}\n.foot{bottom:80px !important;}\n.head{font-size:140px !important;}",
+  "scene": {
+    "kicker": "10/4(日)ご参加の皆さん",
+    "head": "ありがとう\nございました",
+    "sub": "一緒に打てて楽しかったです🏸",
+    "note": "次回は <b>10/11(日)</b>\nまたコートで会いましょう"
+  }
+}
