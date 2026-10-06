@@ -1,0 +1,9 @@
+{
+  "foot": "和歌山市のバドミントンサークル",
+  "scene": {
+    "kicker": "バドミントン初心者へ",
+    "head": "ラケットの\n握り方",
+    "note": "覚えるのは\n<b>3<i>つ</i></b>\n<u>だけ！</u>"
+  },
+  "css": "\n.scene{justify-content:flex-start !important;padding-top:282px !important;padding-bottom:0 !important;}\n.kicker{font-size:58px;margin-bottom:22px;}\n.head .hline:nth-child(1){font-size:120px;line-height:1.18;}\n.head .hline:nth-child(2){font-size:192px;line-height:1.06;}\n.note{margin-top:34px;background:#2A2522;border:0;border-radius:64px;padding:18px 120px 22px;color:#fff;\n  font-size:62px;box-shadow:0 16px 0 rgba(0,0,0,.22),0 30px 50px rgba(90,40,10,.35);line-height:1.1;}\n.note b{display:block;font-size:256px;line-height:.92;font-weight:900;color:#FFD23F;text-shadow:0 10px 0 #E25C12;}\n.note b i{font-style:normal;font-size:76%;}\n.note u{text-decoration:none;display:block;font-size:76px;font-weight:900;margin-top:0;}\n.mascot{width:300px !important;bottom:262px !important;}\n.foot{bottom:186px !important;}\n"
+}
