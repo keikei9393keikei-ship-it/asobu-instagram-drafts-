@@ -48,6 +48,8 @@ async function renderOne(browser, name) {
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
   await page.goto(TEMPLATE_URL, { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts.ready);
+  // 1本だけ見た目を変えたいときは spec.css に書く（例：図を大きく見せる場面だけ見出しを小さくする）
+  if (spec.css) await page.addStyleTag({ content: spec.css });
   await page.evaluate((s) => window.renderReel(s.scenes, s.foot), spec);
   // 見出しに使う太いグリフを先に読み込ませる。抜けると一瞬だけ別書体で写る
   await page.evaluate(async () => {
