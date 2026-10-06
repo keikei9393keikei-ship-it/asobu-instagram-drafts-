@@ -1,10 +1,10 @@
 {
   "date": "2026-10-06",
-  "caption": "こんばんは！和歌山市でバドミントンサークルをしています🏸\n\nラケットの握り方、はじめての人はこの3つを覚えておけば大丈夫です。\n\n▫️握手するように持つ：ラケットの面を床に垂直に立てて、横から握ります\n▫️ふんわり握る：指の間に少しすき間を残して、打つ瞬間だけ力を入れます\n▫️高い位置で打つ：ひじを上げて、頭より上でシャトルをとらえます\n\nあとは打ちながら慣れていけます。最初の30分は自由に打つ時間なので、ここで試せます。\n\n活動は和歌山市内の体育館で、土日の19:00〜21:00。ラケット・シャトルは貸し出しがあるので、持ってくるのは室内用の靴だけです。参加費は会場代で1回600円です。\n\n1人で参加する人も多く、はじめての人もいます。やってみたい方は、DMで気軽に聞いてください🏸\n\nVOICEVOX:ずんだもん\n\n#バドミントン #バドミントンサークル #バドミントン部 #和歌山市サークル #和歌山市バドミントン #和歌山市バドミントンサークル #遊部 #和歌山サークル #和歌山バドミントン #和歌山バドミントンサークル #バト部 #バド部 #バト部和歌山 #バド部和歌山 #バドミントン和歌山 #バドミントン初心者 #バドミントン練習",
+  "caption": "こんばんは！和歌山市でバドミントンサークルをしています🏸\n\nラケットの握り方、はじめての人はこの3つを押さえておけば打てます。保存して、行く前に見返してください。\n\n▫️握手するように持つ：面を床に対してタテに立て、横から握手する形でつかみます。面が上を向く「フライパン持ち」になっていたら持ち直します\n▫️ふんわり握る：指の間に少しすき間を残し、力を入れるのは打つ瞬間だけ。手首が動きやすくなります\n▫️高い位置で打つ：ひじを肩より上に上げ、頭より上でシャトルに当てます\n\n最初の30分は自由に打つ時間なので、握り方はそこで試しながら覚えていけます。\n\n活動は和歌山市内の体育館で、土日の19:00〜21:00。ラケットとシャトルは無料で借りられるので、用意するのは室内用の靴だけ。参加費は会場代として1回600円です。\n\n1人で参加する人も多く、はじめてバドミントンをする人もいます。握り方で迷ったときも、DMで聞いてください🏸\n\nVOICEVOX:ずんだもん\n\n#バドミントン #バドミントンサークル #バドミントン部 #和歌山市サークル #和歌山市バドミントン #和歌山市バドミントンサークル #遊部 #和歌山サークル #和歌山バドミントン #和歌山バドミントンサークル #バト部 #バド部 #バト部和歌山 #バド部和歌山 #バドミントン和歌山 #バドミントン初心者 #バドミントン練習",
   "foot": "和歌山市のバドミントンサークル",
   "scenes": [
     {
-      "t": 0.0,
+      "t": 0,
       "d": 2.6,
       "kicker": "はじめての人向け",
       "head": "ラケットの\n握り方3つ",
@@ -12,39 +12,64 @@
     },
     {
       "t": 2.6,
-      "d": 4.0,
+      "d": 4.4,
       "badge": "1",
       "head": "握手するように\n持つ",
       "photo": "assets/reels/grip-1.png"
     },
     {
-      "t": 6.6,
-      "d": 3.8,
+      "t": 7.0,
+      "d": 3.2,
+      "head": "面は\nタテ向き",
+      "sub": "上を向く「フライパン持ち」は\n横から持ち直す"
+    },
+    {
+      "t": 10.2,
+      "d": 4.4,
       "badge": "2",
       "head": "ふんわり\n握る",
       "photo": "assets/reels/grip-2.png"
     },
     {
-      "t": 10.4,
-      "d": 4.0,
+      "t": 14.6,
+      "d": 3.2,
+      "head": "打つ瞬間だけ\nギュッ",
+      "sub": "ずっと強く握るより\n手首が動きやすい"
+    },
+    {
+      "t": 17.8,
+      "d": 4.4,
       "badge": "3",
       "head": "高い位置で\n打つ",
       "fx": "speed",
       "photo": "assets/reels/grip-3.png"
     },
     {
-      "t": 14.4,
-      "d": 3.4,
-      "head": "あとは\n打ちながら",
-      "sub": "最初の30分は自由に打つ時間\n1人で来る人も多いです"
+      "t": 22.2,
+      "d": 3.2,
+      "head": "ひじは\n肩より上",
+      "sub": "頭より上で\nシャトルに当てる"
     },
     {
-      "t": 17.8,
+      "t": 25.4,
+      "d": 3.8,
+      "kicker": "保存しておさらい",
+      "head": "この3つ",
+      "note": "① 握手するように持つ<br>② ふんわり握る<br>③ 高い位置で打つ"
+    },
+    {
+      "t": 29.2,
+      "d": 3.2,
+      "head": "あとは\n打ちながら",
+      "sub": "最初の30分は自由に打つ時間\nここで試せます"
+    },
+    {
+      "t": 32.4,
       "d": 4.0,
       "kicker": "ラケット無料",
       "head": "試したい人は\nDMで",
       "note": "持ち物は室内用の靴だけ\n参加費は会場代600円"
     }
   ],
-  "css": ".scene[data-i=\"1\"] .head,.scene[data-i=\"2\"] .head,.scene[data-i=\"3\"] .head{font-size:132px !important;}\n.scene[data-i=\"1\"] .badge,.scene[data-i=\"2\"] .badge,.scene[data-i=\"3\"] .badge{width:110px;height:110px;font-size:62px;margin-bottom:24px;}\n.scene[data-i=\"1\"],.scene[data-i=\"2\"],.scene[data-i=\"3\"]{padding-top:190px !important;padding-bottom:470px !important;}\n.photo{width:820px;height:561px;margin-top:36px;}\n.photo img{object-fit:contain;background:#FFF7EE;}\n.mascot{width:300px !important;bottom:140px !important;}\n.foot{bottom:70px !important;}"
+  "css": ".scene[data-i=\"1\"] .head,.scene[data-i=\"3\"] .head,.scene[data-i=\"5\"] .head{font-size:132px !important;}\n.scene[data-i=\"1\"] .badge,.scene[data-i=\"3\"] .badge,.scene[data-i=\"5\"] .badge{width:110px;height:110px;font-size:62px;margin-bottom:24px;}\n.scene[data-i=\"1\"],.scene[data-i=\"3\"],.scene[data-i=\"5\"]{padding-top:190px !important;padding-bottom:470px !important;}\n.photo{width:820px;height:561px;margin-top:36px;}\n.photo img{object-fit:contain;background:#FFF7EE;}\n.mascot{width:300px !important;bottom:140px !important;}\n.foot{bottom:70px !important;}"
 }
