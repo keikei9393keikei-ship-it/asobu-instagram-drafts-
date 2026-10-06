@@ -1,0 +1,89 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+ body{margin:0;background:#fff;font-family:"Zen Maru Gothic",sans-serif;}
+ svg{display:block;}
+ .lb{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;fill:#4A382A;}
+ .or{fill:#F0762B;}
+</style></head><body>
+<!-- 図1：握手するように持つ（ラケットの面を床に垂直に立てて、横から握る） -->
+<svg id="d1" width="760" height="520" viewBox="0 0 760 520">
+ <rect width="760" height="520" fill="#FFF7EE"/>
+ <line x1="60" y1="470" x2="700" y2="470" stroke="#C9A98E" stroke-width="6" stroke-linecap="round"/>
+ <text x="70" y="505" class="lb" font-size="26" fill="#9A7B66">床</text>
+ <!-- ラケット（面が床に垂直） -->
+ <ellipse cx="300" cy="140" rx="80" ry="110" fill="none" stroke="#4A382A" stroke-width="12"/>
+ <g stroke="#C9A98E" stroke-width="3" opacity=".8">
+  <line x1="245" y1="60" x2="245" y2="220"/><line x1="275" y1="38" x2="275" y2="244"/><line x1="300" y1="32" x2="300" y2="248"/><line x1="325" y1="38" x2="325" y2="244"/><line x1="355" y1="60" x2="355" y2="220"/>
+  <line x1="228" y1="100" x2="372" y2="100"/><line x1="222" y1="140" x2="378" y2="140"/><line x1="228" y1="180" x2="372" y2="180"/>
+ </g>
+ <rect x="294" y="248" width="12" height="90" fill="#4A382A"/>
+ <rect x="282" y="335" width="36" height="120" rx="10" fill="#F0762B" stroke="#4A382A" stroke-width="5"/>
+ <!-- 垂直の印 -->
+ <line x1="300" y1="455" x2="300" y2="470" stroke="#4A382A" stroke-width="5"/>
+ <path d="M300 440 h22 v30" fill="none" stroke="#F0762B" stroke-width="5"/>
+ <!-- 横から近づく手（握手の形） -->
+ <g transform="translate(560 395)">
+  <path d="M110 -30 C60 -40 10 -28 -40 -22 C-70 -18 -70 18 -40 22 C10 28 60 40 110 30 Z" fill="#F6D2B8" stroke="#4A382A" stroke-width="5"/>
+  <path d="M-30 -22 C-45 -50 -20 -62 0 -40" fill="#F6D2B8" stroke="#4A382A" stroke-width="5"/>
+  <path d="M-38 -6 h40 M-38 8 h40" stroke="#4A382A" stroke-width="3" opacity=".5"/>
+ </g>
+ <path d="M500 395 L360 395" stroke="#F0762B" stroke-width="8" stroke-linecap="round" stroke-dasharray="2 16"/>
+ <path d="M372 380 L350 395 L372 410" fill="none" stroke="#F0762B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+ <text x="430" y="70" class="lb" font-size="40">面を床に</text>
+ <text x="430" y="118" class="lb or" font-size="40">垂直に立てる</text>
+ <text x="430" y="300" class="lb" font-size="40">横から</text>
+ <text x="430" y="348" class="lb or" font-size="40">握手するように</text>
+</svg>
+<!-- 図2：ふんわり握る -->
+<svg id="d2" width="760" height="520" viewBox="0 0 760 520">
+ <rect width="760" height="520" fill="#FFF7EE"/>
+ <!-- グリップの断面と指 -->
+ <polygon points="230,170 280,150 330,170 350,220 330,270 280,290 230,270 210,220" fill="#F0762B" stroke="#4A382A" stroke-width="6"/>
+ <text x="280" y="232" text-anchor="middle" class="lb" font-size="26" fill="#fff">グリップ</text>
+ <g fill="#F6D2B8" stroke="#4A382A" stroke-width="5">
+  <ellipse cx="392" cy="150" rx="40" ry="30"/><ellipse cx="410" cy="215" rx="40" ry="30"/><ellipse cx="400" cy="280" rx="40" ry="30"/><ellipse cx="372" cy="342" rx="36" ry="27"/>
+ </g>
+ <g stroke="#F0762B" stroke-width="5" stroke-linecap="round">
+  <line x1="460" y1="182" x2="500" y2="182"/><line x1="460" y1="247" x2="500" y2="247"/><line x1="450" y1="312" x2="490" y2="312"/>
+ </g>
+ <text x="510" y="200" class="lb" font-size="34">指の間に</text>
+ <text x="510" y="244" class="lb or" font-size="34">少しすき間</text>
+ <!-- 力の入れ方 -->
+ <text x="70" y="430" class="lb" font-size="32">ふだん</text>
+ <rect x="190" y="402" width="200" height="34" rx="17" fill="#fff" stroke="#4A382A" stroke-width="4"/>
+ <rect x="190" y="402" width="60" height="34" rx="17" fill="#F6B15E"/>
+ <text x="410" y="430" class="lb" font-size="32">軽く</text>
+ <text x="70" y="485" class="lb" font-size="32">打つ瞬間</text>
+ <rect x="230" y="457" width="200" height="34" rx="17" fill="#fff" stroke="#4A382A" stroke-width="4"/>
+ <rect x="230" y="457" width="200" height="34" rx="17" fill="#F0762B"/>
+ <text x="450" y="485" class="lb or" font-size="32">ギュッ</text>
+</svg>
+<!-- 図3：高い位置で打つ -->
+<svg id="d3" width="760" height="520" viewBox="0 0 760 520">
+ <rect width="760" height="520" fill="#FFF7EE"/>
+ <line x1="60" y1="490" x2="700" y2="490" stroke="#C9A98E" stroke-width="6" stroke-linecap="round"/>
+ <g stroke="#4A382A" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <circle cx="300" cy="215" r="36" fill="#F6D2B8" stroke-width="7"/>
+  <line x1="300" y1="252" x2="300" y2="380"/>
+  <polyline points="300,380 260,488"/><polyline points="300,380 345,488"/>
+  <polyline points="300,280 240,320"/>
+  <polyline points="300,275 360,235 340,170"/>
+ </g>
+ <!-- ラケット -->
+ <line x1="340" y1="170" x2="352" y2="120" stroke="#4A382A" stroke-width="8"/>
+ <ellipse cx="362" cy="78" rx="34" ry="46" transform="rotate(14 362 78)" fill="none" stroke="#F0762B" stroke-width="9"/>
+ <!-- シャトル -->
+ <g transform="translate(420 60) rotate(-35)">
+  <circle cx="0" cy="0" r="12" fill="#fff" stroke="#4A382A" stroke-width="4"/>
+  <path d="M8 -10 L44 -24 L44 24 L8 10 Z" fill="#fff" stroke="#4A382A" stroke-width="4"/>
+ </g>
+ <!-- 印 -->
+ <circle cx="360" cy="236" r="20" fill="none" stroke="#F0762B" stroke-width="6" stroke-dasharray="6 6"/>
+ <line x1="160" y1="78" x2="700" y2="78" stroke="#F0762B" stroke-width="4" stroke-dasharray="10 10" opacity=".6"/>
+ <text x="455" y="270" class="lb" font-size="34">ひじを</text>
+ <text x="455" y="314" class="lb or" font-size="34">上げる</text>
+ <text x="455" y="140" class="lb" font-size="34">頭より上で</text>
+ <text x="455" y="184" class="lb or" font-size="34">シャトルに当てる</text>
+</svg>
+</body></html>
