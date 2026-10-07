@@ -20,14 +20,15 @@ import { readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  todayJST, hourJST, GREETING_RE, dedupeKey, venueHits, hashtags, MAX_CAPTION, MAX_HASHTAGS,
+} from './lib/rules.mjs';
+import { validateReel, totalSeconds } from './lib/reel-schema.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(ROOT, 'reels');
 
 const MODE = (process.env.MODE || 'check').trim();
-const jst = () => new Date(Date.now() + 9 * 3600 * 1000);
-const todayJST = () => jst().toISOString().slice(0, 10);
-const hourJST = () => Number(jst().toISOString().slice(11, 13));
 
 // カードは21〜23時、リールは18〜21時。同じ日に両方あっても、出る時間がずれる
 const FROM = Number(process.env.REEL_FROM_JST || 18);
@@ -36,9 +37,6 @@ const TO = Number(process.env.REEL_TO_JST || 21);
 const API_BASE = process.env.IG_API_BASE || 'https://graph.instagram.com';
 const API_VERSION = process.env.IG_API_VERSION || 'v23.0';
 const IG_USER_ID = (process.env.IG_USER_ID || 'me').trim();
-
-const MAX_CAPTION = 2200;
-const MAX_HASHTAGS = 30;
 
 function fail(msg) {
   console.error(`\n❌ ${msg}`);
@@ -72,10 +70,6 @@ async function headStatus(url) {
   }
 }
 
-/** 名乗りを落としてから比べる。名乗りは全投稿で同じなので、残すと見分けがつかない */
-const GREETING_RE = /^(こんにちは|こんばんは)！和歌山市でバドミントンサークルをしています🏸/;
-const dedupeKey = (c) => c.replace(GREETING_RE, '').replace(/\s+/g, '').slice(0, 60);
-
 async function alreadyPosted(caption) {
   const key = dedupeKey(caption);
   try {
@@ -90,7 +84,14 @@ async function alreadyPosted(caption) {
 async function load(name) {
   const file = path.join(SRC, `${name}.json`);
   if (!existsSync(file)) fail(`reels/${name}.json がありません`);
-  const spec = JSON.parse(await readFile(file, 'utf8'));
+  let spec;
+  try {
+    spec = JSON.parse(await readFile(file, 'utf8'));
+  } catch (e) {
+    fail(`reels/${name}.json を読めません: ${e.message}`);
+  }
+  const errors = validateReel(spec);
+  if (errors.length) fail(`reels/${name}.json の形が正しくありません:\n   - ${errors.join('\n   - ')}`);
   if (!spec.caption) fail(`reels/${name}.json に caption がありません`);
   const base = process.env.PAGES_BASE_URL;
   if (!base) fail('環境変数 PAGES_BASE_URL が設定されていません');
@@ -113,19 +114,14 @@ async function check({ name, spec, url }) {
   const caption = spec.caption;
 
   if (caption.length > MAX_CAPTION) problems.push(`キャプションが${caption.length}文字。上限は${MAX_CAPTION}文字`);
-  const tags = caption.match(/#[^\s#]+/g) || [];
+  const tags = hashtags(caption);
   if (tags.length > MAX_HASHTAGS) problems.push(`ハッシュタグが${tags.length}個。上限は${MAX_HASHTAGS}個`);
   if (!GREETING_RE.test(caption)) problems.push('キャプションの冒頭が名乗りで始まっていません');
 
   // 会場名は投稿に出さない運用（CLAUDE.md §4-2）。「和歌山市内の体育館」はOK
-  const venueRe = /([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}A-Za-z0-9]{1,12})体育館(?!シューズ)/gu;
-  for (const m of caption.matchAll(venueRe)) {
-    if (!/(和歌山)?市内の$/.test(m[1])) {
-      problems.push(`キャプションに会場名らしき表記があります: 「${m[0]}」`);
-    }
-  }
+  for (const hit of venueHits(caption)) problems.push(`キャプションに会場名らしき表記があります: 「${hit}」`);
 
-  const seconds = spec.scenes.reduce((end, s) => Math.max(end, s.t + s.d), 0);
+  const seconds = totalSeconds(spec.scenes);
   const status = await headStatus(url);
   if (status !== 200) problems.push(`動画URLがひらけません（HTTP ${status}）: ${url}\n     Pagesが未公開か、build-cards がまだ終わっていない可能性があります`);
 

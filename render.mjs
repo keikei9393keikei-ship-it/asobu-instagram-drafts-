@@ -5,6 +5,7 @@ import { readFile, readdir, mkdir, cp, writeFile, stat } from 'node:fs/promises'
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pastDates, cardTexts } from './lib/rules.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const WEEKS = path.join(ROOT, 'weeks');
@@ -71,27 +72,7 @@ async function renderWeek(browser, week) {
 /** 中身に「9/6」「9月6日」のような過ぎた日付が含まれるか。
  *  日付のない常設ネタは false。フォルダ名（投稿日）ではなく活動日で判断するため。 */
 function hasPastDate(cards, caption) {
-  const texts = [caption];
-  for (const c of cards) for (const k of ['headline', 'body', 'sub', 'cta', 'label']) {
-    if (typeof c[k] === 'string') texts.push(c[k]);
-  }
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  for (const t of texts) {
-    const ms = [...t.matchAll(/(?<![\d\/])(\d{1,2})\/(\d{1,2})(?![\d\/])/g),
-                ...t.matchAll(/(\d{1,2})月(\d{1,2})日/g)];
-    for (const m of ms) {
-      const mo = Number(m[1]), d = Number(m[2]);
-      if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
-      let best = null;
-      for (const y of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
-        const cand = new Date(y, mo - 1, d);
-        if (cand.getMonth() !== mo - 1) continue;
-        if (!best || Math.abs(cand - today) < Math.abs(best - today)) best = cand;
-      }
-      if (best && best < today) return true;
-    }
-  }
-  return false;
+  return pastDates([caption, ...cardTexts(cards)]).length > 0;
 }
 
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -146,7 +127,8 @@ li:has(.past) a{color:#6f7a6c;}</style></head>
 const weeks = await listWeeks();
 if (!weeks.length) { console.log('weeks/ に cards.json がありません'); process.exit(0); }
 await mkdir(DIST, { recursive: true });
-const browser = await chromium.launch();
+// CHROMIUM_PATH を指定すると、入っている Chromium をそのまま使う（Playwright の版と合わないときの逃げ道）
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const results = [];
 for (const w of weeks) results.push(await renderWeek(browser, w));
 await browser.close();

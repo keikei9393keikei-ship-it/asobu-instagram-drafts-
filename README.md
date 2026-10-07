@@ -19,7 +19,7 @@ PCがオフでも、GitHub上でカード画像（**1080×1350 PNG**・確定デ
    - `cards.json` … カード定義（`card-design.md` のスキーマ。`layout` = `cover` / `qa` / `single`）
    - `caption.txt` … 貼り付け用キャプション（頭「こんにちは！…」＋締め＋固定ハッシュタグ入り）
 2. `git add -A && git commit -m "add 9/8" && git push`
-3. GitHub Actions が走り、Pages が更新される（毎週日曜22:00 JSTにも自動再ビルド）
+3. GitHub Actions が走り、Pages が更新される（管理ボードの数字のため、毎時41分にも再ビルド）
 
 ## 初期設定（1回だけ）
 
@@ -78,7 +78,10 @@ Actions から手動で実行すると、Pages上の画像URLを使って Instag
 |---|---|
 | `template.html` | カードの見た目。`window.renderCards(cards)` を持つ |
 | `render.mjs` | Playwright で各カードを 1080×1350 PNG 化、Pages用サイトを `dist/` に生成 |
-| `.github/workflows/build.yml` | ビルド＆Pagesデプロイ |
+| `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（カード・リール動画・`status.json`） |
+| `build-status.mjs` | 管理ボードが読む `dist/status.json` を作る |
+| `guard-public.mjs` | 公開してはいけないもの（トークン・DMの本文）が `dist/` に無いか調べる |
+| `lib/` | 文章ルールの判定・リールの形の確認・失敗の原因と対処（投稿系のスクリプトが共有） |
 | `publish.mjs` | Pages上の画像URLを使って Instagram に投稿（手動実行） |
 | `.github/workflows/publish.yml` | 上記を Actions から手動実行するためのワークフロー |
 | `.github/workflows/auto-publish.yml` | 毎日19:00 JST、その日の日付のフォルダがあれば自動投稿 |

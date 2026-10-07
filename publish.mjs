@@ -23,28 +23,19 @@ import { readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  todayJST, hourJST, GREETING_RE, greetingNow, dedupeKey, venueHits, pastDates as findPastDates,
+  cardTexts, hashtags, MAX_CAROUSEL, MAX_CAPTION, MAX_HASHTAGS,
+} from './lib/rules.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 const MODE = (process.env.MODE || 'check').trim();
-/** 日本時間の今日（YYYY-MM-DD）。フォルダ名 = 投稿予定日 として使う */
-function todayJST() {
-  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
-}
-/** 日本時間の「時」（0〜23） */
-function hourJST() {
-  return Number(new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(11, 13));
-}
 
 // 全投稿の冒頭につける名乗り。昼に出すなら「こんにちは」、夜なら「こんばんは」。
 // caption.txt にはどちらかを書いておけばよく、実際に投稿する時刻（日本時間）に
 // 合わせてここで言い換える。自動投稿は21〜23時なので、ふだんは「こんばんは」になる。
-const GREETING_TAIL = '！和歌山市でバドミントンサークルをしています🏸';
-const GREETING_RE = new RegExp(`^(こんにちは|こんばんは)${GREETING_TAIL}`);
-
-function greetingNow(h = hourJST()) {
-  return `${h >= 5 && h < 17 ? 'こんにちは' : 'こんばんは'}${GREETING_TAIL}`;
-}
+// 文言と判定は lib/rules.mjs にある。
 
 /** caption.txt の1行目の名乗りを、いま投稿する時刻の挨拶に置き換える */
 function withGreetingForNow(caption) {
@@ -66,11 +57,6 @@ const API_VERSION = process.env.IG_API_VERSION || 'v23.0';
 
 // 既定の 'me' はトークンの持ち主のアカウントを指すので、IDを調べなくてよい
 const IG_USER_ID = (process.env.IG_USER_ID || '').trim() || 'me';
-
-// Instagram側の制限
-const MAX_CAROUSEL = 10;   // カルーセルは最大10枚
-const MAX_CAPTION = 2200;  // キャプションの最大文字数
-const MAX_HASHTAGS = 30;   // ハッシュタグの最大個数
 
 function req(name) {
   const v = process.env[name];
@@ -124,7 +110,7 @@ async function check({ cards, caption, urls }) {
   if (caption.length > MAX_CAPTION) {
     problems.push(`キャプションが${caption.length}文字。上限は${MAX_CAPTION}文字`);
   }
-  const tags = caption.match(/#[^\s#]+/g) || [];
+  const tags = hashtags(caption);
   if (tags.length > MAX_HASHTAGS) {
     problems.push(`ハッシュタグが${tags.length}個。上限は${MAX_HASHTAGS}個`);
   }
@@ -140,11 +126,8 @@ async function check({ cards, caption, urls }) {
 
   // 会場名は投稿に出さない運用（CLAUDE.md）。「◯◯体育館」という固有名が混ざっていないか見る。
   // 「和歌山市内の体育館」はOK、「体育館シューズ」は持ち物なので対象外。
-  const venueRe = /([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}A-Za-z0-9]{1,12})体育館(?!シューズ)/gu;
-  for (const m of caption.matchAll(venueRe)) {
-    if (!/(和歌山)?市内の$/.test(m[1])) {
-      problems.push(`キャプションに会場名らしき表記があります: 「${m[0]}」（会場は投稿に出さない運用）`);
-    }
+  for (const hit of venueHits(caption)) {
+    problems.push(`キャプションに会場名らしき表記があります: 「${hit}」（会場は投稿に出さない運用）`);
   }
 
   console.log(`\n■ 投稿内容の確認 — weeks/${WEEK}\n`);
@@ -178,36 +161,9 @@ async function check({ cards, caption, urls }) {
   console.log('\n✅ チェックはすべて通りました。');
 }
 
-/** 文字列から日付らしき表記を拾い、今日より前のものを返す */
+/** カードとキャプションから、今日より前の日付を返す */
 function pastDates(cards, caption) {
-  const texts = [caption];
-  for (const c of cards) for (const k of ['headline', 'body', 'sub', 'cta', 'label']) {
-    if (typeof c[k] === 'string') texts.push(c[k]);
-  }
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const found = new Map();
-
-  for (const t of texts) {
-    // 「9/6」（前後に空白のないもの）と「9月6日」
-    const ms = [...t.matchAll(/(?<![\d\/])(\d{1,2})\/(\d{1,2})(?![\d\/])/g),
-                ...t.matchAll(/(\d{1,2})月(\d{1,2})日/g)];
-    for (const m of ms) {
-      const mo = Number(m[1]), d = Number(m[2]);
-      if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
-      // 年をまたぐ表記のため、今日にいちばん近い年の同じ日付として解釈する
-      let best = null;
-      for (const y of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
-        const cand = new Date(y, mo - 1, d);
-        if (cand.getMonth() !== mo - 1) continue; // 2/30 のような無効な日付
-        if (!best || Math.abs(cand - today) < Math.abs(best - today)) best = cand;
-      }
-      if (best && best < today) {
-        found.set(m[0], `${best.getFullYear()}年${mo}月${d}日`);
-      }
-    }
-  }
-  return [...found];
+  return findPastDates([caption, ...cardTexts(cards)]);
 }
 
 async function headStatus(url) {
@@ -260,12 +216,6 @@ async function waitReady(containerId, label) {
     await new Promise((r) => setTimeout(r, 3000));
   }
   fail(`${label} の準備が90秒たっても終わりませんでした`);
-}
-
-// 名乗りは全投稿の冒頭に同じ形で入るので、突き合わせる前に落とす。
-// 残さないと、どの投稿も先頭が同じになって「投稿済み」と誤判定しかねない。
-function dedupeKey(caption) {
-  return caption.replace(GREETING_RE, '').replace(/\s+/g, '').slice(0, 60);
 }
 
 /** 同じ内容をすでに投稿していないか。cronが二重に走ったときの保険 */
