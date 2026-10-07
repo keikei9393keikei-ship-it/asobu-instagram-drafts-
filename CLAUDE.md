@@ -147,8 +147,13 @@ npm install
 npx playwright install chromium   # 初回のみ
 npm run render                    # dist/index.html をブラウザで確認
 npm run dupes                     # 使い回している文がないか確認（重複があれば終了コード1）
-npm run reel                      # リール動画を dist/reels/ に書き出す（ffmpeg が要る）
+npm run reel                      # リール動画を dist/reels/ に書き出す（ffmpeg が要る。変わっていないものは省く。--force で全部）
+npm run status                    # 管理ボードが読む dist/status.json を作る
+npm run guard                     # dist/ に公開してはいけないもの（トークン・DMの本文など）がないか確認
 ```
+
+Playwright の版と入っている Chromium が合わないときは、`CHROMIUM_PATH=<chromeの場所>` を付けると
+その Chromium で描く（`render.mjs` と `render-reel.mjs` の両方）。
 
 ## 5.5 リール動画（1080×1920・MP4）
 
@@ -181,7 +186,14 @@ npm run reel                      # リール動画を dist/reels/ に書き出�
 
 **仕組み**：`reel.html` を Playwright で開き、`window.seek(t)` で1フレームずつ描いて撮り、
 ffmpeg でつなぐ。同じ `t` なら必ず同じ絵になるので、何度流しても同じ動画になる。
-ffmpeg が要る（GitHubの ubuntu ランナーには最初から入っている）。
+ffmpeg が要る。⚠️ **GitHubの ubuntu ランナーには入っていない**（以前は入っていると書いていたが誤り。
+9/23〜10/4 のビルドはこれで全部落ち、リール動画が Pages に一度も出ていなかった）。
+`build.yml` の「Install ffmpeg」で入れている。
+
+描き出しは1本あたり数分かかるので、**中身が変わっていないものは描き直さない。**
+場面・`foot`・`voice` と、`reel.html`・`render-reel.mjs`・マスコットのハッシュを
+`dist/reels/.hashes/` に残して比べる。キャプションや `checks` を直しただけなら描き直さない。
+Actions では `dist/reels/` をキャッシュしている。`reels/` から消したリールの動画は、全部を書き出すときに消える。
 
 動きは `seek(t)` の中で全部作っている。CSSアニメーションは使っていない
 （時刻で決まらないと、撮るたびに違う絵になるため）。入れてあるのは、
@@ -196,6 +208,23 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
   ただし**無音のAAC音声だけは埋め込んである**（Instagramが音声トラックのない動画を
   受け付けないことがあるため）
 - 文章ルール（§4）はリールにも同じように効く。会場名・LINE・人数は出さない
+
+### 管理用のフィールド（どれも任意。無くても今までどおり動く）
+
+`lib/reel-schema.mjs` が形を確かめる。**知らないキーがあると止まる**（打ち間違いを見つけるため）。
+場面の `t` が前の場面の終わりとずれていても止まる。
+
+| キー | 中身 |
+|---|---|
+| `stage` | 制作ラインの段階。`idea`（ネタ案）→ `script`（台本）→ `review`（批評）→ `build`（制作）→ `check`（校閲）→ `awaiting`（承認待ち）→ `scheduled`（投稿予定）→ `published`（投稿済み） |
+| `source` | ネタの出どころ。`{ "type": "idea|metrics|inbox-faq|manual", "note": "…" }`。**DMの中身は書かない**（「日程の質問が多い」のような傾向まで） |
+| `needsFootage` | 実写の素材が要るネタは `true`。ボードの撮影リストに出る（撮影は本人の担当） |
+| `voice` | `{ "speaker": "zundamon" }`。声を付けるとき（M4で対応予定） |
+| `checks` | 校閲の結果。校閲スクリプトが書く欄なので手で書かない |
+| 場面の `say` / `yomi` | ずんだもんのセリフと、読みの補正（`{ "遊部": "あそぶ" }`）。M4で対応予定 |
+
+ボードに出す段階は、`stage` の値ではなく**実態から決める**（`build-status.mjs`）。
+main にあって予定日が先 → 投稿予定、Instagram 側の数字がある → 投稿済み、開いている週次PRの中 → 承認待ち。
 
 ### リールの自動投稿（§7.6）
 
@@ -232,12 +261,18 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 | `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
 | `publish-reel.mjs` | リールの投稿（Pages上の動画URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
 | `.github/workflows/auto-publish-reel.yml` | リールの自動投稿（毎時・18〜21時JSTの回だけ） | カードとは別の時間帯 |
-| `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（毎週日曜22:00 JSTにも自動再ビルド） | `main` へのpushでのみ動く |
+| `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（ボードの数字のため毎時41分にも再ビルド） | `main` へのpushでのみ動く。ffmpeg をここで入れている |
+| `lib/rules.mjs` | 文章ルールのうち機械で判定できるもの（名乗り・会場名・過ぎた日付・二重投稿の鍵） | 判定を変えるときはここだけ直す。投稿系の4ファイルが共有している |
+| `lib/reel-schema.mjs` | `reels/*.json` の形の確認と、制作ラインの段階の一覧 | フィールドを足すときはここにも足す |
+| `lib/diagnose.mjs` | 失敗の文言から原因と対処を引く／トークンらしい文字列を伏せる | 対処は §7 の表と同じ内容にしておく |
+| `build-status.mjs` | 管理ボードが読む `dist/status.json` を作る（`npm run status`） | **公開される。** DMの本文・名前・トークンは入れない |
+| `guard-public.mjs` | `dist/` に公開してはいけないものがないか調べる（`npm run guard`） | ビルドの最後に必ず通る |
+| `data` ブランチ | 投稿後の数字・投稿の結果・担当の最後の実行・受信箱の件数（ボット専用） | main とは履歴を共有しない。人は書かない。ビルドが `data/` に取ってきて読む |
 | `publish.mjs` | Instagramへの投稿（Pages上の画像URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
 | `.github/workflows/publish.yml` | 投稿を手動実行するワークフロー | 自動では動かない。人がボタンを押す |
 | `drafts/2026-08-*` | 旧パイプラインの過去ドラフト | 参照のみ。更新しない |
 | `legacy/` | 旧パイプライン（Python/Pillow・停止済み） | 触らない |
-| `dist/`, `node_modules/` | 生成物 | gitignore済み。コミットしない |
+| `dist/`, `node_modules/`, `data/` | 生成物（`data/` は data ブランチを取ってきたもの） | gitignore済み。コミットしない |
 
 デザイン仕様の出典は作業場の `research/asobu-team/sns/card-design.md`（クリーム地＋二重フレーム／3レイアウト）。
 このリポジトリ内にはないので、レイアウトを増やすときは既存の `template.html` の作りに合わせる。

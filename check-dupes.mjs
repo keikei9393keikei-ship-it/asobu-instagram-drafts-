@@ -9,12 +9,12 @@
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { GREETING_RE, todayJST } from './lib/rules.mjs';
 
 const ALL = process.argv.includes('--all');
 const MIN_LEN = 12;          // これより短い文は定型句として扱わない
-// 冒頭の名乗りは毎回同じで入れる決まりなので、重複として数えない
-const GREETING_RE = /^(こんにちは|こんばんは)！和歌山市でバドミントンサークルをしています🏸/;
-const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+// 冒頭の名乗り（GREETING_RE）は毎回同じで入れる決まりなので、重複として数えない
+const today = todayJST();
 
 const weeks = readdirSync('weeks')
   .filter((w) => /^\d{4}-\d{2}-\d{2}$/.test(w))
