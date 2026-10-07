@@ -16,6 +16,7 @@ on:
       - 'render.mjs'
       - 'render-reel.mjs'
       - 'build-status.mjs'
+      - 'board.html'
       - 'guard-public.mjs'
       - 'package.json'
       - '.github/workflows/build.yml'
