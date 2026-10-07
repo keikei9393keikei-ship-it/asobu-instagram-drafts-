@@ -1,4 +1,4 @@
-// build-status.mjs — 管理ボードが読む dist/status.json を作る
+// build-status.mjs — 管理ボードが読む dist/status.json を作り、ボード（board.html）を dist/board/ に置く
 //
 //   npm run status
 //
@@ -18,7 +18,7 @@
 // ⚠️ status.json は公開される。DMの本文や相手の名前、トークンは入れない。
 //    受信箱の要約は決まったキーの数値と日時だけを拾い、ほかは捨てる（pickInbox）。
 
-import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, mkdir, writeFile, copyFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -341,10 +341,7 @@ if (publishLog && publishLog.ok === false) {
   alerts.push({ level: 'error', title: `投稿に失敗しました（${publishLog.target || '不明'}）`,
     detail: redact(publishLog.error || '').slice(0, 200), cause, action, url: publishLog.runUrl || null, at: publishLog.at || null });
 }
-if (inbox.available && inbox.byPriority.first > 0) {
-  alerts.push({ level: 'info', title: `初参加の相談が ${inbox.byPriority.first}件 返信を待っています`,
-    action: 'ドライブの受信箱シートで下書きを確かめて、Instagramから返信する' });
-}
+// 初参加の相談の件数は、ボードの受信箱の欄に最初の画面で出るので、警告には重ねない
 
 // 段階ごとの本数。ネタ案〜校閲は backlog、承認待ちは週次PR、投稿予定・投稿済みは main と数字から
 const stageItems = Object.fromEntries(STAGES.map((s) => [s, []]));
@@ -375,6 +372,8 @@ const status = {
   sources: { data: existsSync(DATA), github: workflows.some((w) => w.lastRunAt) },
 };
 
-await mkdir(DIST, { recursive: true });
+await mkdir(path.join(DIST, 'board'), { recursive: true });
 await writeFile(path.join(DIST, 'status.json'), JSON.stringify(status, null, 2));
+// ボード本体。status.json を読んで描くだけの静的なページ
+await copyFile(path.join(ROOT, 'board.html'), path.join(DIST, 'board', 'index.html'));
 console.log(`status.json: 段階 ${status.stages.map((s) => `${s.label}${s.count}`).join(' ')} / 警告 ${alerts.length}件`);

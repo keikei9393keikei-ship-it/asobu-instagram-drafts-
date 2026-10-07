@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>遊部 管理ボード</title>
+<!--
+  board.html — 遊部カンパニーの管理ボード。build-status.mjs が dist/board/index.html にコピーし、
+  同じビルドで作った ../status.json を読んで描く。トークンは持たない。外部のスクリプトも読まない。
+
+  ⚠️ status.json の文字（キャプション・題名など）は、すべて textContent で入れる。innerHTML は使わない。
+-->
+<style>
+  /* 色はすべてここで持つ。ライト／ダークは同じ役割の別の段（dataviz の検証を通した値） */
+  :root {
+    color-scheme: light;
+    --page: #f6f7f3;
+    --surface: #fcfcfb;
+    --surface-2: #f0f1ec;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #6f6d68;
+    --hair: #e1e0d9;
+    --ring: rgba(11, 11, 11, .10);
+    --accent: #2e7d32;          /* 遊部の緑。グラフの今週の点・リンク・承認待ちの強調 */
+    --accent-ink: #1f5a3a;
+    --accent-wash: rgba(46, 125, 50, .10);
+    --deemph: #b9b7ae;          /* 推移の線（今週以外） */
+    --good: #006300;            /* 増えた（文字用） */
+    --bad: #b42323;             /* 減った（文字用） */
+    --critical: #d03b3b;
+    --serious: #ec835a;
+    --warning: #fab219;
+    --info: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #121412;
+      --surface: #1b1e1b;
+      --surface-2: #242824;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #9a988f;
+      --hair: #2c302c;
+      --ring: rgba(255, 255, 255, .10);
+      --accent: #4a9d4c;
+      --accent-ink: #8cc152;
+      --accent-wash: rgba(74, 157, 76, .16);
+      --deemph: #4a4d48;
+      --good: #0ca30c;
+      --bad: #e66767;
+      --info: #3987e5;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #121412;
+    --surface: #1b1e1b;
+    --surface-2: #242824;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #9a988f;
+    --hair: #2c302c;
+    --ring: rgba(255, 255, 255, .10);
+    --accent: #4a9d4c;
+    --accent-ink: #8cc152;
+    --accent-wash: rgba(74, 157, 76, .16);
+    --deemph: #4a4d48;
+    --good: #0ca30c;
+    --bad: #e66767;
+    --info: #3987e5;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", "Segoe UI", sans-serif;
+  }
+  a { color: var(--accent-ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 14px 16px 64px; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  header h1 { font-size: 1.05rem; margin: 0; flex: 1; }
+  header .updated { color: var(--muted); font-size: .78rem; }
+  .theme { border: 1px solid var(--hair); background: var(--surface); color: var(--ink-2);
+    border-radius: 999px; font: inherit; font-size: .78rem; padding: 4px 10px; cursor: pointer; }
+
+  section { margin-top: 14px; }
+  h2 { font-size: .9rem; margin: 0 0 8px; color: var(--ink-2); font-weight: 700; display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; white-space: nowrap; }
+  h2 .sub { white-space: normal; }
+  h2 .sub { font-weight: 400; color: var(--muted); font-size: .78rem; }
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 12px; }
+  .empty { color: var(--muted); font-size: .85rem; margin: 0; }
+
+  /* 警告。色だけに頼らず、記号と文字で種類を出す */
+  .alerts { display: grid; gap: 8px; }
+  .alert { display: grid; grid-template-columns: 18px 1fr; gap: 0 6px; background: var(--surface);
+    border: 1px solid var(--ring); border-left: 4px solid var(--info); border-radius: 10px; padding: 8px 10px; font-size: .88rem; }
+  .alert.error { border-left-color: var(--critical); }
+  .alert.warn { border-left-color: var(--serious); }
+  .alert .ico { font-weight: 800; text-align: center; }
+  .alert .t { font-weight: 700; }
+  .alert .d { grid-column: 2; color: var(--ink-2); font-size: .8rem; overflow-wrap: anywhere; }
+  .alert .d b { color: var(--ink); font-weight: 700; }
+  .alert details { grid-column: 2; }
+  .alert details summary { font-size: .76rem; }
+  .alert details .d { display: block; margin-top: 2px; }
+
+  /* 制作ライン：段階ごとの本数 */
+  .stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .stage { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 7px 8px; min-width: 0; }
+  .stage .n { font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+  .stage .l { font-size: .72rem; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stage.zero .n { color: var(--muted); font-weight: 600; }
+  .stage.hot { border-color: var(--accent); background: var(--accent-wash); }
+  .stage.hot .l { color: var(--ink); font-weight: 700; }
+  @media (min-width: 720px) { .stages { grid-template-columns: repeat(8, 1fr); } }
+
+  /* 先週の数字：タイル4枚 */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  @media (min-width: 720px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 8px 10px 6px; min-width: 0; }
+  .tile .l { font-size: .78rem; color: var(--ink-2); }
+  .tile .v { font-size: 1.45rem; font-weight: 650; line-height: 1.2; }
+  .tile .v.na { color: var(--muted); font-size: 1.1rem; font-weight: 500; }
+  .tile .delta { font-size: .76rem; color: var(--muted); }
+  .tile .delta.up { color: var(--good); }
+  .tile .delta.down { color: var(--bad); }
+  .spark { display: block; width: 100%; max-width: 180px; height: auto; margin-top: 2px; overflow: visible; }
+  .spark .line { fill: none; stroke: var(--deemph); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .spark .dot { fill: var(--deemph); stroke: var(--surface); stroke-width: 2; }
+  .spark .dot.now { fill: var(--accent); }
+  .spark .hit { fill: transparent; cursor: default; outline: none; }
+  .spark .hit:focus-visible + .dot, .spark .hit:hover + .dot { stroke: var(--ink); }
+  .tip { position: fixed; z-index: 10; pointer-events: none; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--ring); border-radius: 8px; padding: 5px 9px; font-size: .78rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,.14); display: none; white-space: nowrap; }
+  .tip b { font-size: .95rem; }
+  .tip span { color: var(--ink-2); margin-left: 6px; }
+
+  /* 受信箱 */
+  .inbox { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .inbox .tile .v { font-size: 1.3rem; }
+  .tile.hot { border-color: var(--accent); background: var(--accent-wash); }
+  .due { display: inline-flex; align-items: center; gap: 5px; }
+  .due::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--deemph); flex: none; }
+  .due.critical::before { background: var(--critical); }
+  .due.serious::before { background: var(--serious); }
+  .due.ok::before { background: var(--good); }
+
+  /* 一覧 */
+  .list { display: grid; gap: 8px; }
+  .row { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .row .main { min-width: 0; }
+  .row .title { font-weight: 600; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: .78rem; }
+  .tag { display: inline-block; font-size: .7rem; border: 1px solid var(--hair); color: var(--ink-2);
+    border-radius: 999px; padding: 0 7px; margin-left: 6px; white-space: nowrap; vertical-align: 1px; }
+  .tag.shoot { border-color: var(--serious); }
+  .btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 700;
+    border-radius: 8px; padding: 7px 12px; font-size: .85rem; white-space: nowrap; }
+  :root[data-theme="dark"] .btn { color: #0b0b0b; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn { color: #0b0b0b; } }
+
+  .pr { display: grid; gap: 10px; }
+  .pr-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+  .reels { display: grid; gap: 10px; }
+  @media (min-width: 720px) { .reels { grid-template-columns: repeat(2, 1fr); } }
+  .reel { border: 1px solid var(--hair); border-radius: 10px; padding: 10px; display: grid; gap: 8px; min-width: 0; }
+  .reel video { width: 100%; max-height: 420px; background: #000; border-radius: 8px; display: block; }
+  .novideo { aspect-ratio: 9 / 16; max-height: 220px; width: auto; background: var(--surface-2); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .78rem; text-align: center; padding: 10px; }
+  .checks { font-size: .8rem; display: grid; gap: 2px; }
+  .checks .ok { color: var(--good); font-weight: 700; }
+  .checks .ng { color: var(--bad); font-weight: 700; }
+  .checks li { margin-left: -14px; overflow-wrap: anywhere; }
+  details summary { cursor: pointer; color: var(--ink-2); font-size: .82rem; }
+  pre.caption { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .82rem; background: var(--surface-2);
+    border-radius: 8px; padding: 10px; margin: 6px 0 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th, td { text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+  td:first-child { min-width: 9em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+
+  .team { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .member .name { font-weight: 600; font-size: .85rem; overflow-wrap: anywhere; }
+  .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--deemph); }
+  .wf .ok { color: var(--good); } .wf .ng { color: var(--bad); font-weight: 700; }
+  footer { margin-top: 28px; color: var(--muted); font-size: .75rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>遊部 管理ボード</h1>
+    <span class="updated" id="updated"></span>
+    <button class="theme" id="theme" type="button" aria-label="表示の明るさを切り替える">自動</button>
+  </header>
+  <div id="app"><p class="empty">読み込み中…</p></div>
+  <footer>
+    <a href="../">カードの一覧へ</a> ・ このページは status.json から作っています（毎時更新）。DMの本文や名前は載せません。
+  </footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+'use strict';
+
+// ── 表示の明るさ（自動／ライト／ダーク）。保存できない環境でも動くようにする ──
+(function themeToggle() {
+  const order = ['auto', 'light', 'dark'];
+  const label = { auto: '自動', light: 'ライト', dark: 'ダーク' };
+  const btn = document.getElementById('theme');
+  let mode = 'auto';
+  try { mode = localStorage.getItem('board-theme') || 'auto'; } catch (e) { /* 保存できない */ }
+  const qs = new URLSearchParams(location.search).get('theme');
+  if (order.includes(qs)) mode = qs;
+  const apply = () => {
+    if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', mode);
+    btn.textContent = label[mode];
+  };
+  btn.addEventListener('click', () => {
+    mode = order[(order.indexOf(mode) + 1) % order.length];
+    try { localStorage.setItem('board-theme', mode); } catch (e) { /* 保存できない */ }
+    apply();
+  });
+  apply();
+})();
+
+// ── 小さな道具 ───────────────────────────────────────────
+/** 要素を作る。文字は必ず textContent で入れる（status.json の中身を HTML として解釈しない） */
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const svg = (tag, attrs) => {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  return el;
+};
+const nf = new Intl.NumberFormat('ja-JP');
+const fmt = (n) => (n === null || n === undefined ? '—' : nf.format(n));
+/** 1,284 / 1.3万 のように縮める（タイルの大きな数字用） */
+function compact(n) {
+  if (n === null || n === undefined) return '—';
+  if (n >= 10000) return `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}万`;
+  return nf.format(n);
+}
+const md = (ymd) => (ymd ? `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}` : '日付なし');
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const mdw = (ymd) => (ymd ? `${md(ymd)}（${WD[new Date(`${ymd}T00:00:00+09:00`).getDay()]}）` : '日付なし');
+function ago(iso) {
+  if (!iso) return 'まだ動いていません';
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'たった今';
+  if (min < 60) return `${min}分前`;
+  const hr = Math.round(min / 60);
+  if (hr < 48) return `${hr}時間前`;
+  return `${Math.round(hr / 24)}日前`;
+}
+function jstLabel(iso) {
+  const d = new Date(iso);
+  const p = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return p.format(d);
+}
+
+// ── ツールチップ（推移の点。ホバーでもキーボードでも同じものを出す） ──
+const tip = document.getElementById('tip');
+function showTip(target, value, label) {
+  tip.replaceChildren(h('b', { text: value }), h('span', { text: label }));
+  tip.style.display = 'block';
+  const r = target.getBoundingClientRect();
+  const w = tip.offsetWidth;
+  tip.style.left = `${Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
+  tip.style.top = `${Math.max(8, r.top - tip.offsetHeight - 8)}px`;
+}
+const hideTip = () => { tip.style.display = 'none'; };
+
+// ── 各ブロック ───────────────────────────────────────────
+function section(title, sub, ...body) {
+  return h('section', {}, h('h2', {}, title, sub ? h('span', { class: 'sub', text: sub }) : null), ...body);
+}
+
+function alertsBlock(alerts) {
+  if (!alerts.length) return null;
+  const icon = { error: '!', warn: '△', info: 'i' };
+  const kind = { error: '要対応', warn: '注意', info: 'お知らせ' };
+  const order = { error: 0, warn: 1, info: 2 };
+  return h('section', { 'aria-label': '警告' }, h('div', { class: 'alerts' },
+    alerts.slice().sort((a, b) => order[a.level] - order[b.level]).map((a) =>
+      h('div', { class: `alert ${a.level}`, role: a.level === 'error' ? 'alert' : null },
+        h('span', { class: 'ico', 'aria-label': kind[a.level], text: icon[a.level] || 'i' }),
+        h('span', { class: 't', text: `${kind[a.level]}：${a.title}` }),
+        a.action ? h('span', { class: 'd' }, h('b', { text: '対処 ' }), a.action) : null,
+        (a.cause || a.detail || a.url) ? h('details', {}, h('summary', { text: '原因とログ' }),
+          a.cause ? h('span', { class: 'd' }, h('b', { text: '原因 ' }), a.cause) : null,
+          a.detail && a.detail !== a.cause ? h('span', { class: 'd', text: a.detail }) : null,
+          a.url ? h('span', { class: 'd' }, h('a', { href: a.url, target: '_blank', rel: 'noopener', text: '実行のログを開く' })) : null) : null,
+      ))));
+}
+
+function stagesBlock(stages) {
+  return section('制作ライン', '段階ごとの本数',
+    h('div', { class: 'stages' }, stages.map((s) =>
+      h('div', { class: `stage${s.count ? '' : ' zero'}${s.key === 'awaiting' && s.count ? ' hot' : ''}`,
+        title: s.items.map((i) => i.title).join('\n') || 'なし' },
+        h('div', { class: 'n', text: String(s.count) }),
+        h('div', { class: 'l', text: s.label })))));
+}
+
+const METRICS = [
+  { key: 'views', label: '再生' },
+  { key: 'saved', label: '保存' },
+  { key: 'shares', label: 'シェア' },
+  { key: 'follows', label: 'フォロー' },
+];
+
+/** 4週ぶんの推移（1系列なので凡例なし。今週＝最後の点だけアクセント色） */
+function sparkline(weeks, key, label) {
+  const W = 120, H = 26, pad = 5;
+  const vals = weeks.map((w) => w[key]);
+  const known = vals.filter((v) => v !== null);
+  if (known.length < 2) return null;
+  const max = Math.max(...known), min = Math.min(0, ...known);
+  const x = (i) => pad + (i * (W - pad * 2)) / (weeks.length - 1);
+  const y = (v) => H - pad - ((v - min) / (max - min || 1)) * (H - pad * 2);
+  const el = svg('svg', { class: 'spark', viewBox: `0 0 ${W} ${H}`, role: 'img',
+    'aria-label': `${label}の4週の推移：${weeks.map((w, i) => `${md(w.start)}の週 ${fmt(vals[i])}`).join('、')}` });
+  const pts = vals.map((v, i) => (v === null ? null : `${x(i)},${y(v)}`)).filter(Boolean);
+  el.append(svg('polyline', { class: 'line', points: pts.join(' '), 'vector-effect': 'non-scaling-stroke' }));
+  vals.forEach((v, i) => {
+    if (v === null) return;
+    const hit = svg('rect', { class: 'hit', x: x(i) - 12, y: 0, width: 24, height: H, tabindex: '0',
+      'aria-label': `${md(weeks[i].start)}の週 ${fmt(v)}` });
+    const show = () => showTip(hit, fmt(v), `${md(weeks[i].start)}〜${md(weeks[i].end)}`);
+    hit.addEventListener('pointerenter', show);
+    hit.addEventListener('focus', show);
+    hit.addEventListener('pointerleave', hideTip);
+    hit.addEventListener('blur', hideTip);
+    el.append(hit, svg('circle', { class: `dot${i === vals.length - 1 ? ' now' : ''}`, cx: x(i), cy: y(v), r: 4, 'vector-effect': 'non-scaling-stroke' }));
+  });
+  return el;
+}
+
+function metricsBlock(m) {
+  const weeks = m.weeks || [];
+  const last = weeks[weeks.length - 1];
+  const prev = weeks[weeks.length - 2];
+  if (!m.available || !last) {
+    return section('先週の数字', null, h('div', { class: 'card' },
+      h('p', { class: 'empty', text: 'まだ数字がありません。投稿後の数字の取り込み（M6）が始まると、ここに再生・保存・シェア・フォローが出ます。' })));
+  }
+  const tiles = METRICS.map(({ key, label }) => {
+    const v = last[key];
+    const p = prev ? prev[key] : null;
+    let delta = null;
+    if (v !== null && p !== null) {
+      const d = v - p;
+      delta = h('div', { class: `delta ${d > 0 ? 'up' : d < 0 ? 'down' : ''}`,
+        text: `前の週より ${d > 0 ? '+' : d < 0 ? '−' : '±'}${fmt(Math.abs(d))}` });
+    } else {
+      delta = h('div', { class: 'delta', text: key === 'follows' && v === null ? 'APIで取れるか要確認' : '前の週の数字なし' });
+    }
+    return h('div', { class: 'tile' },
+      h('div', { class: 'l', text: label }),
+      h('div', { class: `v${v === null ? ' na' : ''}`, text: v === null ? '—' : compact(v) }),
+      delta,
+      sparkline(weeks, key, label));
+  });
+  const table = h('details', {}, h('summary', { text: '表で見る（直近4週）' }),
+    h('div', { class: 'scroll' }, h('table', {},
+      h('thead', {}, h('tr', {}, h('th', { text: '週' }), h('th', { class: 'num', text: '本数' }),
+        METRICS.map((x) => h('th', { class: 'num', text: x.label })))),
+      h('tbody', {}, weeks.map((w) => h('tr', {},
+        h('td', { text: `${md(w.start)}〜${md(w.end)}` }), h('td', { class: 'num', text: String(w.posts) }),
+        METRICS.map((x) => h('td', { class: 'num', text: fmt(w[x.key]) }))))))));
+  return section('先週の数字', `${md(last.start)}〜${md(last.end)} に投稿したリールの合計`, h('div', { class: 'tiles' }, tiles), table);
+}
+
+function dueClass(hours) {
+  if (hours < 6) return 'critical';
+  if (hours < 12) return 'serious';
+  return 'ok';
+}
+/** 大きく出す残り時間。狭いタイルで折れないよう、1時間以上は「時間」だけにする */
+function remainLabel(iso) {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return '過ぎた';
+  const hr = Math.floor(ms / 3600000), min = Math.floor((ms % 3600000) / 60000);
+  return hr >= 1 ? `${hr}時間` : `${min}分`;
+}
+
+function inboxBlock(inbox) {
+  if (!inbox || !inbox.available) {
+    return section('受信箱', null, h('div', { class: 'card' },
+      h('p', { class: 'empty', text: '受信箱の集計はまだ始まっていません（M7）。始まると、返信待ちの件数と期限だけがここに出ます。' })));
+  }
+  const first = inbox.deadlines.find((d) => d.priority === 'first');
+  const next = inbox.deadlines[0];
+  const dueTile = (label, d) => {
+    if (!d) return h('div', { class: 'tile' }, h('div', { class: 'l', text: label }), h('div', { class: 'v na', text: 'なし' }));
+    const hours = (new Date(d.due).getTime() - Date.now()) / 3600000;
+    const cls = hours <= 0 ? 'critical' : dueClass(hours);
+    const word = { critical: '急ぎ', serious: 'そろそろ', ok: '余裕あり' }[cls];
+    return h('div', { class: 'tile' },
+      h('div', { class: 'l', text: label }),
+      h('div', { class: 'v', 'data-due': d.due, text: remainLabel(d.due) }),
+      h('div', { class: 'delta' }, h('span', { class: `due ${cls}`, text: word }), h('br'), `${jstLabel(d.due)}まで`));
+  };
+  return section('受信箱', inbox.updatedAt ? `${ago(inbox.updatedAt)}に集計` : null,
+    h('div', { class: 'inbox' },
+      h('div', { class: 'tile' }, h('div', { class: 'l', text: '返信待ち' }), h('div', { class: 'v', text: `${inbox.unreplied}件` }),
+        h('div', { class: 'delta', text: `日程・会場 ${inbox.byPriority.schedule}／その他 ${inbox.byPriority.other}` })),
+      h('div', { class: `tile${inbox.byPriority.first ? ' hot' : ''}` }, h('div', { class: 'l', text: '初参加の相談' }),
+        h('div', { class: 'v', text: `${inbox.byPriority.first}件` }),
+        h('div', { class: 'delta', text: '一番先に返す' })),
+      dueTile(first ? '初参加の期限' : '一番近い期限', first || next)),
+    h('p', { class: 'meta', text: '本文と下書きはドライブの受信箱シートにあります。期限は相手の最後のメッセージから24時間の目安です。' }));
+}
+
+function checksView(c) {
+  if (!c) return h('div', { class: 'checks meta', text: '校閲：まだ（校閲の仕組みは M3 で入ります）' });
+  return h('div', { class: 'checks' },
+    h('div', {}, '校閲：', h('span', { class: c.ok ? 'ok' : 'ng', text: c.ok ? '✓ 通過' : '✕ 要修正' }),
+      c.at ? h('span', { class: 'meta', text: `（${ago(c.at)}）` }) : null),
+    c.errors.length ? h('ul', {}, c.errors.map((e) => h('li', { text: `✕ ${e}` }))) : null,
+    c.warnings.length ? h('ul', {}, c.warnings.map((e) => h('li', { class: 'meta', text: `△ ${e}` }))) : null);
+}
+
+function pendingBlock(pending) {
+  if (!pending.length) {
+    return section('承認待ち', null, h('div', { class: 'card' },
+      h('p', { class: 'empty', text: '承認待ちのPRはありません。週次のPR（weekly-reels）ができると、動画とキャプション、校閲の結果がここに出ます。' })));
+  }
+  return section('承認待ち', 'PRをマージすると承認', h('div', { class: 'list' }, pending.map((pr) =>
+    h('div', { class: 'card pr' },
+      h('div', { class: 'pr-head' },
+        h('div', { class: 'main' }, h('div', { class: 'title', text: `#${pr.number} ${pr.title}` }),
+          h('div', { class: 'meta', text: `${pr.reels.length}本・${ago(pr.updatedAt)}に更新` })),
+        h('a', { class: 'btn', href: pr.url, target: '_blank', rel: 'noopener', text: 'PRを開く' })),
+      h('div', { class: 'reels' }, pr.reels.map((r) =>
+        h('div', { class: 'reel' },
+          h('div', {}, h('span', { class: 'title', text: r.title }),
+            r.needsFootage ? h('span', { class: 'tag shoot', text: '要撮影' }) : null),
+          h('div', { class: 'meta', text: `${mdw(r.date)}・${r.seconds ? `${r.seconds}秒` : ''}` }),
+          r.video
+            ? h('video', { src: `../${r.video}#t=0.5`, controls: true, playsinline: true, preload: 'metadata' })
+            : h('div', { class: 'novideo', text: '動画のプレビューは M5 から' }),
+          r.schemaErrors && r.schemaErrors.length
+            ? h('div', { class: 'checks' }, h('span', { class: 'ng', text: '✕ ファイルの形が正しくありません' }),
+              h('ul', {}, r.schemaErrors.map((e) => h('li', { text: e }))))
+            : checksView(r.checks),
+          r.caption ? h('details', {}, h('summary', { text: 'キャプション' }), h('pre', { class: 'caption', text: r.caption })) : null)))))));
+}
+
+function reelRow(r, right) {
+  return h('div', { class: 'row' },
+    h('div', { class: 'main' },
+      h('div', {}, h('span', { class: 'title', text: r.title }), r.needsFootage ? h('span', { class: 'tag shoot', text: '要撮影' }) : null),
+      h('div', { class: 'meta', text: [mdw(r.date), r.seconds ? `${r.seconds}秒` : null, r.source && r.source.note ? `出どころ：${r.source.note}` : null].filter(Boolean).join('・') })),
+    right || null);
+}
+
+function scheduledBlock(scheduled, undated) {
+  const items = [...scheduled, ...undated];
+  if (!items.length) {
+    return section('投稿予定', null, h('div', { class: 'card' }, h('p', { class: 'empty', text: '予定に入っているリールはありません。' })));
+  }
+  return section('投稿予定', '18〜21時に自動で出ます（自動投稿を再開したあと）',
+    h('div', { class: 'card list' }, items.map((r) => reelRow(r, r.checks ? checksView(r.checks) : null))));
+}
+
+function publishedBlock(published, unrecorded) {
+  const body = [];
+  if (published.length) {
+    body.push(h('div', { class: 'scroll' }, h('table', {},
+      h('thead', {}, h('tr', {}, h('th', { text: 'リール' }), METRICS.map((x) => h('th', { class: 'num', text: x.label })),
+        h('th', { class: 'num', text: 'いいね' }))),
+      h('tbody', {}, published.map((p) => h('tr', {},
+        h('td', {}, p.permalink ? h('a', { href: p.permalink, target: '_blank', rel: 'noopener', text: p.title }) : p.title,
+          h('div', { class: 'meta', text: mdw(p.date) })),
+        METRICS.map((x) => h('td', { class: 'num', text: fmt(p.metrics ? p.metrics[x.key] : null) })),
+        h('td', { class: 'num', text: fmt(p.metrics ? p.metrics.likes : null) })))))));
+    body.push(h('p', { class: 'meta', text: 'いいねは合計だけです（誰が押したかはAPIで取れません）。' }));
+  } else {
+    body.push(h('p', { class: 'empty', text: '投稿済みの記録はまだありません（数字の取り込みが始まると、Instagram側の投稿と突き合わせて出ます）。' }));
+  }
+  if (unrecorded.length) {
+    body.push(h('details', {}, h('summary', { text: `予定日を過ぎた・投稿の記録なし（${unrecorded.length}本）` }),
+      h('div', { class: 'list', style: 'margin-top:8px' }, unrecorded.map((r) => reelRow(r)))));
+  }
+  return section('投稿済み', null, h('div', { class: 'card' }, body));
+}
+
+function shootingBlock(list) {
+  if (!list.length) return null;
+  return section('撮影リスト', '実写が要るネタ（撮影は本人の担当）', h('div', { class: 'card list' }, list.map((s) =>
+    h('div', {}, h('div', { class: 'title', text: s.title }),
+      s.shots.length ? h('ul', {}, s.shots.map((x) => h('li', { text: x }))) : null,
+      s.note ? h('div', { class: 'meta', text: s.note }) : null))));
+}
+
+function opsBlock(workflows, team) {
+  const wf = workflows.length ? h('div', { class: 'card wf' }, h('table', {}, h('tbody', {}, workflows.map((w) =>
+    h('tr', {},
+      h('td', {}, w.url ? h('a', { href: w.url, target: '_blank', rel: 'noopener', text: w.label }) : w.label),
+      h('td', {}, w.conclusion === 'success' ? h('span', { class: 'ok', text: '✓ 成功' })
+        : w.conclusion === 'failure' ? h('span', { class: 'ng', text: '✕ 失敗' })
+        : h('span', { class: 'meta', text: w.conclusion || '記録なし' })),
+      h('td', { class: 'meta', text: ago(w.lastRunAt) })))))) : null;
+  const COLORS = { cyan: '#1baf9f', green: '#2e7d32', yellow: '#eda100', purple: '#7a5fd0' };
+  const teamEl = h('div', { class: 'team' }, team.map((m) =>
+    h('div', { class: 'card member' },
+      h('div', { class: 'name' }, h('span', { class: 'swatch', style: COLORS[m.color] ? `background:${COLORS[m.color]}` : null }), m.name),
+      h('div', { class: 'meta', text: m.role || '' }),
+      h('div', { class: 'meta', text: `最後に動いた：${ago(m.lastRunAt)}` }))));
+  return [
+    wf ? section('仕組みの動き', '投稿とビルドの最後の実行', wf) : null,
+    section('チーム', '担当エージェント', teamEl),
+  ];
+}
+
+function render(s) {
+  document.getElementById('updated').textContent = `${ago(s.generatedAt)}に更新`;
+  const app = document.getElementById('app');
+  app.replaceChildren(...[
+    alertsBlock(s.alerts || []),
+    stagesBlock(s.stages || []),
+    inboxBlock(s.inbox),
+    metricsBlock(s.metrics || {}),
+    pendingBlock(s.pending || []),
+    scheduledBlock(s.scheduled || [], s.undated || []),
+    publishedBlock(s.published || [], s.unrecorded || []),
+    shootingBlock(s.shootingList || []),
+    ...opsBlock(s.workflows || [], s.team || []),
+  ].filter(Boolean));
+}
+
+// 期限の残り時間は、開いている間も1分ごとに数え直す
+setInterval(() => {
+  for (const el of document.querySelectorAll('[data-due]')) el.textContent = remainLabel(el.getAttribute('data-due'));
+}, 60000);
+
+fetch('../status.json', { cache: 'no-store' })
+  .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  .then(render)
+  .catch((e) => {
+    document.getElementById('app').replaceChildren(h('div', { class: 'card' },
+      h('p', { class: 'empty', text: `status.json を読めませんでした（${e.message}）。ビルドが終わっていないか、失敗しています。` })));
+  });
+</script>
+</body>
+</html>

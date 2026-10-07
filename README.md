@@ -13,6 +13,9 @@ PCがオフでも、GitHub上でカード画像（**1080×1350 PNG**・確定デ
 3. 画像を長押しで保存 ＋「キャプションをコピー」
 4. Instagramアプリで投稿（日時指定 or その場で）
 
+**管理ボード**は `…/asobu-instagram-drafts-/board/`（一覧の上のボタンからも開ける）。
+制作ラインの本数・承認待ち・受信箱の件数と期限・先週の数字・失敗したときの原因と対処が1ページで見られる。
+
 ## 投稿を追加・編集する（PCがオンのとき）
 
 1. `weeks/<投稿日 YYYY-MM-DD>/` を作る
@@ -80,6 +83,7 @@ Actions から手動で実行すると、Pages上の画像URLを使って Instag
 | `render.mjs` | Playwright で各カードを 1080×1350 PNG 化、Pages用サイトを `dist/` に生成 |
 | `.github/workflows/build.yml` | ビルド＆Pagesデプロイ（カード・リール動画・`status.json`） |
 | `build-status.mjs` | 管理ボードが読む `dist/status.json` を作る |
+| `board.html` | 管理ボード（`dist/board/` に置かれ、`status.json` を読んで描く） |
 | `guard-public.mjs` | 公開してはいけないもの（トークン・DMの本文）が `dist/` に無いか調べる |
 | `lib/` | 文章ルールの判定・リールの形の確認・失敗の原因と対処（投稿系のスクリプトが共有） |
 | `publish.mjs` | Pages上の画像URLを使って Instagram に投稿（手動実行） |

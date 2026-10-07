@@ -119,8 +119,9 @@ function indexPage(results) {
 <style>body{margin:0;font-family:system-ui,"Hiragino Sans",sans-serif;background:#141814;color:#eef0e9;padding:24px 16px;}
 h1{font-size:1.15rem;} a{color:#8CC152;font-size:1.05rem;} li{margin:10px 0;}
 .past{margin-left:10px;font-size:.72rem;color:#8b9186;border:1px solid #3a423b;border-radius:999px;padding:2px 9px;vertical-align:middle;}
-li:has(.past) a{color:#6f7a6c;}</style></head>
-<body><h1>遊部（ASOBU）投稿カード</h1><p style="color:#9aa396;font-size:.85rem;">週を選ぶ → 画像を保存＋キャプションをコピー → Instagramで投稿</p>
+li:has(.past) a{color:#6f7a6c;}
+.board a{display:inline-block;background:#1F5A3A;color:#fff;text-decoration:none;font-weight:700;border-radius:8px;padding:9px 14px;font-size:.95rem;}</style></head>
+<body><h1>遊部（ASOBU）投稿カード</h1><p class="board"><a href="./board/">管理ボードを開く →</a></p><p style="color:#9aa396;font-size:.85rem;">週を選ぶ → 画像を保存＋キャプションをコピー → Instagramで投稿</p>
 <ul>${rows}</ul></body></html>`;
 }
 
