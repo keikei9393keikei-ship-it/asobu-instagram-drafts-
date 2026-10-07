@@ -1,0 +1,40 @@
+name: check-reels
+
+# PR に載ったリールとカードを校閲する。ここが赤いPRはマージしない（校閲を通っていない内容は投稿しない）。
+# 秘密情報は使わない。依存も入れない（校閲は node の標準だけで動く）。
+on:
+  pull_request:
+    paths:
+      - 'reels/**'
+      - 'weeks/**'
+      - 'lib/**'
+      - 'test/**'
+      - 'check-reels.mjs'
+      - 'check-dupes.mjs'
+      - '.github/workflows/check-reels.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 校閲の規則そのものが壊れていないか
+      - name: Test the rules
+        run: npm test
+
+      # 予定日が今日以降と日付なしのリール。checks が無い・古い・不合格ならエラー
+      - name: Check reels
+        run: npm run check:reels -- --strict
+
+      # weeks/ と reels/ をまとめて、同じ文の使い回し
+      - name: Check reused sentences
+        run: npm run dupes

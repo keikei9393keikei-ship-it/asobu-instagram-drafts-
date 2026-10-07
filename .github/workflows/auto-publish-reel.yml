@@ -21,7 +21,8 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write    # 投稿の結果を data ブランチ（runs/publish.json）に残すため。main は守るルールで保護する
+  issues: write      # 失敗したら Issue「リール投稿エラー」で知らせるため
 
 concurrency:
   group: instagram-publish     # カードの投稿と同じ群。同時に投稿しない
@@ -40,6 +41,8 @@ jobs:
       - name: Publish today's reel (if any)
         env:
           MODE: scheduled
+          # 投稿した・失敗したときだけ結果がここに書かれる。何も出さなかった回は書かれない
+          RESULT_FILE: ${{ runner.temp }}/publish-result.json
           # 手動実行は「今すぐ出したい」ときなので、時間帯の判定を飛ばす
           IGNORE_WINDOW: ${{ github.event_name == 'workflow_dispatch' }}
           PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || 'https://keikei9393keikei-ship-it.github.io/asobu-instagram-drafts-' }}
@@ -47,3 +50,11 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_API_VERSION: ${{ vars.IG_API_VERSION }}
         run: node publish-reel.mjs
+
+      # 結果を data ブランチに残し、失敗なら Issue で知らせる（成功したら開いている Issue を閉じる）。
+      # トークンは渡さない。結果のファイルにはトークンを伏せた文言しか入っていない
+      - name: Record the result
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node record-run.mjs "${{ runner.temp }}/publish-result.json"

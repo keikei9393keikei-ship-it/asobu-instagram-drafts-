@@ -6,7 +6,7 @@
 //   reels/*.json                main にあるリール（＝承認済み）
 //   data/                       data ブランチの中身（build.yml が取ってくる）
 //     metrics/<名前>.json        投稿後の数字
-//     runs/publish.json          投稿の結果（成功・失敗）
+//     runs/publish.json          投稿の結果（最後の1回と直近30回。record-run.mjs が書く）
 //     runs/agents.json           担当ごとの最後に動いた時刻
 //     pipeline/backlog.json      ネタ案〜校閲で止まっているもの・撮影リスト
 //     inbox-summary.json         受信箱の件数・優先度・期限だけ
@@ -22,7 +22,7 @@ import { readFile, readdir, mkdir, writeFile, copyFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { todayJST } from './lib/rules.mjs';
+import { todayJST, toJstDate, mondayOf } from './lib/rules.mjs';
 import { validateReel, totalSeconds, STAGES, STAGE_LABELS } from './lib/reel-schema.mjs';
 import { redact, diagnose } from './lib/diagnose.mjs';
 
@@ -135,19 +135,11 @@ function latestSnapshot(m) {
   return Object.fromEntries([['at', s.at || null], ...NUM_KEYS.map((k) => [k, num(s[k])])]);
 }
 
-/** 日本時間の日付（YYYY-MM-DD）から、その週の月曜を返す */
-function mondayOf(ymd) {
-  const d = new Date(`${ymd}T00:00:00Z`);
-  const dow = (d.getUTCDay() + 6) % 7; // 月=0
-  d.setUTCDate(d.getUTCDate() - dow);
-  return d.toISOString().slice(0, 10);
-}
 function addDays(ymd, n) {
   const d = new Date(`${ymd}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
-const toJstDate = (iso) => new Date(new Date(iso).getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 
 const WEEK_KEYS = ['views', 'saved', 'shares', 'likes', 'comments', 'follows'];
 
@@ -303,7 +295,13 @@ async function loadWorkflows() {
 // ── 組み立て ─────────────────────────────────────────────
 const reels = await loadMainReels();
 const metrics = await loadMetrics();
-const publishLog = await readJson(path.join(DATA, 'runs', 'publish.json'), null);
+const publishRuns = await readJson(path.join(DATA, 'runs', 'publish.json'), null);
+const publishLog = publishRuns?.last || null;
+// 投稿に成功した記録。数字の取り込み（M6）が始まる前でも「投稿済み」にできる
+const postedByRun = new Map();
+for (const h of [...(publishRuns?.history || [])].reverse()) {
+  if (h?.ok && h.mediaId && /^reels\/[^/]+$/.test(h.target || '')) postedByRun.set(h.target.slice('reels/'.length), h);
+}
 const backlog = pickBacklog(await readJson(path.join(DATA, 'pipeline', 'backlog.json'), null));
 const inbox = pickInbox(await readJson(path.join(DATA, 'inbox-summary.json'), null));
 
@@ -313,9 +311,10 @@ const unrecorded = [];
 const undated = [];
 for (const { name, spec } of reels) {
   const m = metrics[name];
+  const run = postedByRun.get(name);
   const base = reelSummary(name, spec);
-  if (m?.media_id || spec.stage === 'published') {
-    published.push({ ...base, postedAt: m?.posted_at || null, permalink: m?.permalink || null,
+  if (m?.media_id || run || spec.stage === 'published') {
+    published.push({ ...base, postedAt: m?.posted_at || run?.at || null, permalink: m?.permalink || null,
       metrics: m ? latestSnapshot(m) : null });
   } else if (!spec.date) {
     undated.push(base);
