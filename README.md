@@ -85,7 +85,15 @@ Actions から手動で実行すると、Pages上の画像URLを使って Instag
 | `build-status.mjs` | 管理ボードが読む `dist/status.json` を作る |
 | `board.html` | 管理ボード（`dist/board/` に置かれ、`status.json` を読んで描く） |
 | `guard-public.mjs` | 公開してはいけないもの（トークン・DMの本文）が `dist/` に無いか調べる |
-| `lib/` | 文章ルールの判定・リールの形の確認・失敗の原因と対処（投稿系のスクリプトが共有） |
+| `lib/` | 文章ルールの判定・リールの形の確認・校閲・ずんだもんの声・失敗の原因と対処（投稿系のスクリプトが共有） |
+| `check-reels.mjs` | リールの校閲（`npm run check:reels`）。PRでは `check-reels.yml` が走る |
+| `record-run.mjs` | リールの投稿の結果を data ブランチに残し、失敗なら Issue で知らせる |
+| `.claude/agents/` | 企画・台本・制作・批評・校閲の担当エージェントと、窓口の秘書 |
+
+## ずんだもんの声
+
+リールの `voice` と場面の `say` を書くと、VOICEVOX でずんだもんの声を付けられる（クレジット「VOICEVOX:ずんだもん」が必須）。
+手元で試すときは `docker run -d -p 50021:50021 voicevox/voicevox_engine:cpu-0.25.2` を立ててから `npm run reel`。
 | `publish.mjs` | Pages上の画像URLを使って Instagram に投稿（手動実行） |
 | `.github/workflows/publish.yml` | 上記を Actions から手動実行するためのワークフロー |
 | `.github/workflows/auto-publish.yml` | 毎日19:00 JST、その日の日付のフォルダがあれば自動投稿 |

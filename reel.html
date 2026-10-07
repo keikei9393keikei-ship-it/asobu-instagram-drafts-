@@ -76,6 +76,20 @@
   .mascot{position:absolute;left:50%;bottom:250px;width:420px;transform-origin:50% 100%;}
   .mascot img{width:100%;display:block;
     filter:drop-shadow(0 22px 26px rgba(160,95,55,.28));}
+
+  /* 声のあるリール：マスコットを少し右に寄せ、左にセリフの吹き出しを出す。
+     右端は Instagram のボタンが重なるので、マスコットは x=900 くらいまでに収める */
+  .voiced .mascot{left:64%;}
+  .bubble{position:absolute;left:48px;top:1236px;width:410px;
+    background:#fff;border:6px solid var(--accent);border-radius:34px;padding:22px 26px;
+    font-weight:700;font-size:40px;line-height:1.38;color:var(--ink);white-space:pre-line;
+    box-shadow:0 10px 0 rgba(198,110,52,.20);opacity:0;transform-origin:85% 60%;}
+  .bubble::after{content:"";position:absolute;right:-30px;top:58px;width:0;height:0;
+    border-left:30px solid var(--accent);border-top:16px solid transparent;border-bottom:16px solid transparent;}
+  .bubble::before{content:"";position:absolute;right:-19px;top:64px;width:0;height:0;z-index:1;
+    border-left:21px solid #fff;border-top:10px solid transparent;border-bottom:10px solid transparent;}
+  /* 声のクレジット（VOICEVOX の規約で表記が要る）。上端の進行バーの下に小さく */
+  .credit{position:absolute;right:30px;top:28px;font-weight:700;font-size:24px;color:#7A6152;opacity:.75;letter-spacing:.02em;}
 </style>
 </head>
 <body>
@@ -90,6 +104,8 @@
   <div class="pill">遊部<em>|</em>ASOBU</div>
   <div id="scenes"></div>
   <div class="mascot" id="mascot"><img src="assets/mascot.png" alt=""></div>
+  <div id="bubbles"></div>
+  <div class="credit" id="credit"></div>
   <div class="foot" id="foot"></div>
   <div class="flash" id="flash"></div>
   <div class="bar" id="bar"></div>
@@ -146,12 +162,38 @@ function fitHeads() {
 
 let SCENES = [];
 let TOTAL = 0;
+let SAY = {};   // 場面の番号 → { start, seconds }（声の開始時刻と長さ。render-reel.mjs が渡す）
 
 /** countTo がある場面は、見出しの {n} を数字に差し替えて使う */
 const headText = (s, n) => String(s.head).replace('{n}', n == null ? (s.countTo ?? '') : n);
 
-window.renderReel = function (scenes, foot) {
+/** 吹き出しの文字が3行に収まるまで小さくする */
+function fitBubbles() {
+  document.querySelectorAll('.bubble').forEach((el) => {
+    let size = 40;
+    el.style.opacity = '1';
+    for (let i = 0; i < 12 && el.scrollHeight > 3 * size * 1.38 + 56; i++) {
+      size -= 2;
+      el.style.fontSize = size + 'px';
+    }
+    el.style.opacity = '0';
+  });
+}
+
+/**
+ * @param scenes 場面の並び
+ * @param foot   全場面の下に出る固定文
+ * @param opts   { credit: 声のクレジット, say: { 場面の番号: { start, seconds } } }
+ *               say がある場面は、セリフ（scene.say）を吹き出しで出す
+ */
+window.renderReel = function (scenes, foot, opts = {}) {
   SCENES = scenes;
+  SAY = opts.say || {};
+  document.getElementById('credit').textContent = opts.credit || '';
+  const hasSay = scenes.some((s) => s.say);
+  document.getElementById('stage').classList.toggle('voiced', hasSay);
+  document.getElementById('bubbles').innerHTML = scenes.map((s, i) =>
+    s.say ? `<div class="bubble" data-b="${i}">${esc(s.say)}</div>` : '').join('');
   TOTAL = scenes.reduce((end, s) => Math.max(end, s.t + s.d), 0);
   document.getElementById('foot').textContent = foot || '';
   document.getElementById('scenes').innerHTML = scenes.map((s, i) => {
@@ -168,6 +210,7 @@ window.renderReel = function (scenes, foot) {
   }).join('');
   document.querySelectorAll('.scene').forEach((el) => (el.style.display = 'flex'));
   fitHeads();
+  fitBubbles();
   return scenes.length;
 };
 
@@ -254,10 +297,28 @@ window.seek = function (t) {
 
   document.getElementById('flash').style.opacity = flash.toFixed(3);
 
-  // マスコットは出てきたあと上下に揺れ、場面が変わるたびに小さく跳ねる
+  // 吹き出しは、声が始まる少し前にぽんと出て、場面が抜けるときに消える。
+  // 声のない吹き出し（voice なしで say だけ書いた場合）は、場面の頭から出す
+  let talking = 0;
+  document.querySelectorAll('.bubble').forEach((b) => {
+    const i = Number(b.dataset.b);
+    const s = SCENES[i];
+    const v = SAY[i];
+    const start = (v ? v.start : s.t + 0.35) - 0.12;
+    const end = s.t + s.d - 0.2;
+    const local = t - start;
+    const on = t >= start && t < end;
+    const e = easeBack(clamp01(local / 0.3));
+    const fade = clamp01((end - t) / 0.18);
+    b.style.opacity = on ? String(clamp01(local / 0.12) * fade) : '0';
+    b.style.transform = `scale(${(0.6 + e * 0.4).toFixed(3)})`;
+    if (v && t >= v.start && t < v.start + v.seconds) talking = 1;
+  });
+
+  // マスコットは出てきたあと上下に揺れ、場面が変わるたびに小さく跳ねる。話している間は小刻みに弾む
   const m = document.getElementById('mascot');
   const inP = easeOut(clamp01((t - 0.25) / 0.5));
-  const bob = Math.sin(t * 1.9) * 9;
+  const bob = Math.sin(t * 1.9) * 9 + talking * Math.abs(Math.sin(t * 14)) * -10;
   const hop = sceneJustStarted * 26;
   const squash = 1 + sceneJustStarted * 0.06;
   m.style.opacity = String(inP);

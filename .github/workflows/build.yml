@@ -81,8 +81,23 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: dist/reels
-          key: reels-${{ hashFiles('reels/**', 'reel.html', 'render-reel.mjs', 'assets/**') }}
+          key: reels-${{ hashFiles('reels/**', 'reel.html', 'render-reel.mjs', 'lib/voice.mjs', 'assets/**') }}
           restore-keys: reels-
+
+      # ずんだもんの声（VOICEVOX）。声を新しく作る必要があるときだけ立てる。
+      # イメージは約2GBあるので、毎時のビルドで毎回取ってこないようにしている。
+      # 版は固定する（版が変わると同じセリフでも声が変わり、描き直しになるため）
+      - name: Start VOICEVOX (only when new voice lines are needed)
+        run: |
+          if [ "$(node render-reel.mjs --needs-voice)" = "yes" ]; then
+            docker run -d --rm --name voicevox -p 50021:50021 voicevox/voicevox_engine:cpu-0.25.2
+            for i in $(seq 1 90); do
+              curl -fsS http://localhost:50021/version && echo " VOICEVOX is up" && break
+              sleep 2
+            done
+          else
+            echo "新しく作る声はありません。VOICEVOX は立てません"
+          fi
 
       # Instagram は動画ファイルを直接受け取れず、公開URLを渡す方式なので、
       # ここで Pages に出しておかないと投稿できない
@@ -94,7 +109,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: dist/reels
-          key: reels-${{ hashFiles('reels/**', 'reel.html', 'render-reel.mjs', 'assets/**') }}
+          key: reels-${{ hashFiles('reels/**', 'reel.html', 'render-reel.mjs', 'lib/voice.mjs', 'assets/**') }}
 
       - name: Build status.json
         env:
