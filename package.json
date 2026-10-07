@@ -9,7 +9,9 @@
     "reel": "node render-reel.mjs",
     "reel:check": "MODE=check node publish-reel.mjs",
     "status": "node build-status.mjs",
-    "guard": "node guard-public.mjs"
+    "guard": "node guard-public.mjs",
+    "check:reels": "node check-reels.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "devDependencies": {
     "playwright": "^1.48.2"

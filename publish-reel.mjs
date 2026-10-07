@@ -15,15 +15,24 @@
 //   REEL_FROM_JST    … 任意。scheduled が投稿してよい時間帯の開始（既定 18）
 //   REEL_TO_JST      … 任意。同じく終了（既定 21）
 //   IGNORE_WINDOW    … 任意。'true' なら時間帯の判定を飛ばす（手動実行のとき）
+//   RESULT_FILE      … 任意。投稿した・失敗したときに結果をJSONで書く先（record-run.mjs が data ブランチと Issue に回す）
+//
+// 投稿の前に必ず通すもの（どれか1つでも引っかかれば投稿しない）:
+//   - 形（lib/reel-schema）と校閲（lib/compliance）。ファイルの checks は信用せず、ここでやり直す
+//   - 予定の並び（同じ日に2本ない・週5本まで）と、同じ文の使い回し
+//   - 動画URLがひらけるか
+//   - 直近の投稿：同じキャプションがもう出ていればスキップ。今日（日本時間）すでにリールがあれば止める。
+//     今週（月〜日）すでに5本あれば止める。直近の投稿を確かめられなければ、投稿しない側に倒す
 
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  todayJST, hourJST, GREETING_RE, dedupeKey, venueHits, hashtags, MAX_CAPTION, MAX_HASHTAGS,
-} from './lib/rules.mjs';
+import { todayJST, hourJST, toJstDate, mondayOf, dedupeKey, hashtags } from './lib/rules.mjs';
 import { validateReel, totalSeconds } from './lib/reel-schema.mjs';
+import { checkReel, scheduleProblems, MAX_REELS_PER_WEEK } from './lib/compliance.mjs';
+import { collectPosts, findDupes } from './lib/dupes.mjs';
+import { redact } from './lib/diagnose.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(ROOT, 'reels');
@@ -37,28 +46,52 @@ const TO = Number(process.env.REEL_TO_JST || 21);
 const API_BASE = process.env.IG_API_BASE || 'https://graph.instagram.com';
 const API_VERSION = process.env.IG_API_VERSION || 'v23.0';
 const IG_USER_ID = (process.env.IG_USER_ID || 'me').trim();
+const RESULT_FILE = process.env.RESULT_FILE || '';
 
-function fail(msg) {
-  console.error(`\n❌ ${msg}`);
+// リールの投稿の上限は、日本時間の暦の日で1本、月〜日の週で5本（自分で決めた運用の上限。APIの上限よりずっと厳しい）。
+// 「24時間以内」で数えると、前日の遅い時刻に出した日は翌日の18〜21時がすべて塞がって出し損ねるため、暦で数える
+
+let target = null; // 結果に書く「何を投稿しようとしていたか」
+
+/** 結果を書く（RESULT_FILE があるときだけ）。秘密らしい文字列は伏せる */
+async function writeResult(result) {
+  if (!RESULT_FILE) return;
+  const body = { kind: 'reel', mode: MODE, target, at: new Date().toISOString(), ...result };
+  if (body.error) body.error = redact(body.error).slice(0, 500);
+  await writeFile(RESULT_FILE, JSON.stringify(body, null, 2));
+}
+
+async function fail(msg) {
+  console.error(`\n❌ ${redact(msg)}`);
+  await writeResult({ ok: false, error: msg });
   process.exit(1);
 }
+// 想定していない例外（通信が切れた等）でも、結果を残してから終わる。残らないと Issue で知らせられない
+process.on('unhandledRejection', (e) => fail(`想定していない失敗: ${e?.message || e}`));
+process.on('uncaughtException', (e) => fail(`想定していない失敗: ${e?.message || e}`));
 function req(name) {
-  if (!process.env[name]) fail(`環境変数 ${name} が設定されていません`);
+  if (!process.env[name]) return fail(`環境変数 ${name} が設定されていません`);
 }
 
 async function api(endpoint, params) {
   const body = new URLSearchParams({ ...params, access_token: process.env.IG_ACCESS_TOKEN });
   const r = await fetch(`${API_BASE}/${API_VERSION}/${endpoint}`, { method: 'POST', body });
   const json = await r.json().catch(() => ({}));
-  if (!r.ok || json.error) fail(`${endpoint} でエラー: ${json?.error?.message || `HTTP ${r.status}`}`);
+  if (!r.ok || json.error) await fail(apiError(endpoint, r, json));
   return json;
 }
 async function apiGet(endpoint, params) {
   const qs = new URLSearchParams({ ...params, access_token: process.env.IG_ACCESS_TOKEN });
   const r = await fetch(`${API_BASE}/${API_VERSION}/${endpoint}?${qs}`);
   const json = await r.json().catch(() => ({}));
-  if (!r.ok || json.error) fail(`${endpoint} でエラー: ${json?.error?.message || `HTTP ${r.status}`}`);
+  if (!r.ok || json.error) await fail(apiError(endpoint, r, json));
   return json;
+}
+
+/** Metaのエラーは、原因の見分けに要る code も一緒に出す（lib/diagnose が code=190 などで判定する） */
+function apiError(endpoint, r, json) {
+  const e = json?.error;
+  return `${endpoint} でエラー: ${e?.message || `HTTP ${r.status}`}` + (e ? ` (code=${e.code} subcode=${e.error_subcode ?? '-'})` : '');
 }
 
 async function headStatus(url) {
@@ -70,56 +103,76 @@ async function headStatus(url) {
   }
 }
 
-async function alreadyPosted(caption) {
+/**
+ * 直近の投稿を見て、出してよいかを決める。
+ * 確かめられなければ apiGet が fail する（＝投稿しない側に倒れる）。
+ * @returns {'ok' | 'duplicate'}
+ */
+async function guardRecent(caption) {
+  const json = await apiGet(`${IG_USER_ID}/media`, { fields: 'caption,timestamp,media_product_type', limit: '25' });
+  const media = json.data || [];
   const key = dedupeKey(caption);
-  try {
-    const json = await apiGet(`${IG_USER_ID}/media`, { fields: 'caption', limit: '10' });
-    return (json.data || []).some((m) => dedupeKey(m.caption || '') === key);
-  } catch (e) {
-    console.log(`   （直近の投稿を確認できませんでした: ${e.message}。そのまま進みます）`);
-    return false;
-  }
+  if (media.some((m) => dedupeKey(m.caption || '') === key)) return 'duplicate';
+  const today = todayJST();
+  const days = media.filter((m) => m.media_product_type === 'REELS' && m.timestamp).map((m) => toJstDate(m.timestamp));
+  if (days.includes(today)) await fail(`今日（${today}）はもうリールを投稿しています。リールは1日1本までなので、今回は投稿しません`);
+  const thisWeek = days.filter((d) => mondayOf(d) === mondayOf(today)).length;
+  if (thisWeek >= MAX_REELS_PER_WEEK) await fail(`今週（${mondayOf(today)}〜）はもうリールを${thisWeek}本投稿しています。週${MAX_REELS_PER_WEEK}本までなので、今回は投稿しません`);
+  return 'ok';
 }
 
 async function load(name) {
   const file = path.join(SRC, `${name}.json`);
-  if (!existsSync(file)) fail(`reels/${name}.json がありません`);
+  if (!existsSync(file)) await fail(`reels/${name}.json がありません`);
   let spec;
   try {
     spec = JSON.parse(await readFile(file, 'utf8'));
   } catch (e) {
-    fail(`reels/${name}.json を読めません: ${e.message}`);
+    await fail(`reels/${name}.json を読めません: ${e.message}`);
   }
   const errors = validateReel(spec);
-  if (errors.length) fail(`reels/${name}.json の形が正しくありません:\n   - ${errors.join('\n   - ')}`);
-  if (!spec.caption) fail(`reels/${name}.json に caption がありません`);
+  if (errors.length) await fail(`reels/${name}.json の形が正しくありません:\n   - ${errors.join('\n   - ')}`);
+  if (!spec.caption) await fail(`reels/${name}.json に caption がありません`);
   const base = process.env.PAGES_BASE_URL;
-  if (!base) fail('環境変数 PAGES_BASE_URL が設定されていません');
+  if (!base) await fail('環境変数 PAGES_BASE_URL が設定されていません');
   return { name, spec, url: `${base.replace(/\/$/, '')}/reels/${name}.mp4` };
 }
 
-/** 今日の日付が入ったリールを探す */
+/** reels/ の全部を { name, spec } で読む。読めないファイルがあれば止める
+ *  （黙って飛ばすと、今日の分が壊れていたときに「出すものなし」で終わってしまう） */
+async function loadAll() {
+  const out = [];
+  for (const f of (await readdir(SRC)).filter((n) => n.endsWith('.json')).sort()) {
+    try {
+      out.push({ name: f.replace(/\.json$/, ''), spec: JSON.parse(await readFile(path.join(SRC, f), 'utf8')) });
+    } catch (e) {
+      await fail(`reels/${f} を読めません: ${e.message}`);
+    }
+  }
+  return out;
+}
+
+/** 今日の日付が入ったリールを探す。2本以上あれば、黙って1本を選ばずに止める */
 async function findToday() {
   const today = todayJST();
-  const names = (await readdir(SRC)).filter((n) => n.endsWith('.json')).map((n) => n.replace(/\.json$/, ''));
-  for (const n of names.sort()) {
-    const spec = JSON.parse(await readFile(path.join(SRC, `${n}.json`), 'utf8'));
-    if (spec.date === today) return n;
-  }
-  return null;
+  const hits = (await loadAll()).filter((r) => r.spec.date === today).map((r) => r.name);
+  if (hits.length > 1) await fail(`今日（${today}）のリールが${hits.length}本あります（${hits.join('・')}）。1日1本までなので、date を直してください`);
+  return hits[0] || null;
 }
 
 async function check({ name, spec, url }) {
-  const problems = [];
   const caption = spec.caption;
-
-  if (caption.length > MAX_CAPTION) problems.push(`キャプションが${caption.length}文字。上限は${MAX_CAPTION}文字`);
   const tags = hashtags(caption);
-  if (tags.length > MAX_HASHTAGS) problems.push(`ハッシュタグが${tags.length}個。上限は${MAX_HASHTAGS}個`);
-  if (!GREETING_RE.test(caption)) problems.push('キャプションの冒頭が名乗りで始まっていません');
+  const today = todayJST();
 
-  // 会場名は投稿に出さない運用（CLAUDE.md §4-2）。「和歌山市内の体育館」はOK
-  for (const hit of venueHits(caption)) problems.push(`キャプションに会場名らしき表記があります: 「${hit}」`);
+  // 校閲（check-reels.mjs と同じもの）。ファイルの checks は信用しない
+  const { errors, warnings } = checkReel(spec, { today });
+  const problems = [...errors];
+  const all = await loadAll();
+  problems.push(...(scheduleProblems(all.filter((r) => r.spec.date).map((r) => ({ name: r.name, date: r.spec.date }))).get(name) || []));
+  for (const [s, ids] of findDupes(collectPosts(ROOT, { today }))) {
+    if (ids.includes(`reels/${name}`)) problems.push(`「${s}」が ${ids.filter((x) => x !== `reels/${name}`).join('・')} と同じ文です`);
+  }
 
   const seconds = totalSeconds(spec.scenes);
   const status = await headStatus(url);
@@ -131,11 +184,12 @@ async function check({ name, spec, url }) {
   console.log(`動画URL  : ${status === 200 ? '✅' : '❌'} ${url}`);
   console.log(`キャプション ${caption.length}文字 / ハッシュタグ ${tags.length}個\n`);
   console.log(caption.split('\n').map((l) => `  │ ${l}`).join('\n'));
+  for (const w of warnings) console.log(`  △ ${w}`);
 
   if (problems.length) {
     console.log('\n──────── 投稿できません ────────');
     for (const p of problems) console.log(`  ❌ ${p}`);
-    process.exit(1);
+    await fail(`校閲を通りません（${problems.length}件）: ${problems[0]}`);
   }
   console.log('\n✅ チェックはすべて通りました。');
 }
@@ -146,16 +200,16 @@ async function waitReady(containerId) {
     const { status_code, status } = await apiGet(containerId, { fields: 'status_code,status' });
     if (status_code === 'FINISHED') return;
     if (status_code === 'ERROR' || status_code === 'EXPIRED') {
-      fail(`動画の変換に失敗しました (status_code=${status_code}) ${status || ''}`);
+      await fail(`動画の変換に失敗しました (status_code=${status_code}) ${status || ''}`);
     }
     process.stdout.write('.');
     await new Promise((r) => setTimeout(r, 3000));
   }
-  fail('動画の変換が5分たっても終わりませんでした');
+  await fail('動画の変換が5分たっても終わりませんでした');
 }
 
 async function publish({ spec, url }) {
-  req('IG_ACCESS_TOKEN');
+  await req('IG_ACCESS_TOKEN');
   console.log('\nリールのコンテナを作成中…');
   const { id: creationId } = await api(`${IG_USER_ID}/media`, {
     media_type: 'REELS',
@@ -170,6 +224,7 @@ async function publish({ spec, url }) {
   console.log('');
 
   const { id } = await api(`${IG_USER_ID}/media_publish`, { creation_id: creationId });
+  await writeResult({ ok: true, mediaId: id });
   console.log(`\n✅ 投稿しました。media id = ${id}`);
   console.log('   Instagramアプリで表示を確認してください。');
 }
@@ -190,14 +245,17 @@ if (MODE === 'scheduled') {
     process.exit(0);
   }
 }
-if (!name) fail('環境変数 REEL に reels/ のファイル名（拡張子なし）を指定してください');
+if (!name) await fail('環境変数 REEL に reels/ のファイル名（拡張子なし）を指定してください');
+target = `reels/${name}`;
 
 const reel = await load(name);
 await check(reel);
 
 if (MODE === 'publish' || MODE === 'scheduled') {
-  if (MODE === 'scheduled' && (await alreadyPosted(reel.spec.caption))) {
+  await req('IG_ACCESS_TOKEN');
+  if ((await guardRecent(reel.spec.caption)) === 'duplicate') {
     console.log('\n同じ内容がすでに投稿されています。重複を避けてスキップしました。');
+    await writeResult({ ok: true, skipped: 'duplicate' });
     process.exit(0);
   }
   await publish(reel);

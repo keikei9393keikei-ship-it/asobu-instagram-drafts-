@@ -525,7 +525,7 @@ function opsBlock(workflows, team) {
         : w.conclusion === 'failure' ? h('span', { class: 'ng', text: '✕ 失敗' })
         : h('span', { class: 'meta', text: w.conclusion || '記録なし' })),
       h('td', { class: 'meta', text: ago(w.lastRunAt) })))))) : null;
-  const COLORS = { cyan: '#1baf9f', green: '#2e7d32', yellow: '#eda100', purple: '#7a5fd0' };
+  const COLORS = { cyan: '#1baf9f', green: '#2e7d32', yellow: '#eda100', purple: '#7a5fd0', red: '#e34948', blue: '#2a78d6', orange: '#eb6834' };
   const teamEl = h('div', { class: 'team' }, team.map((m) =>
     h('div', { class: 'card member' },
       h('div', { class: 'name' }, h('span', { class: 'swatch', style: COLORS[m.color] ? `background:${COLORS[m.color]}` : null }), m.name),
