@@ -8,6 +8,8 @@
     "dupes": "node check-dupes.mjs",
     "reel": "node render-reel.mjs",
     "reel:se": "node render-reel-se.mjs",
+    "reel:all": "node scripts/reel-all.mjs",
+    "voices": "node scripts/make-voices.mjs",
     "reel:check": "MODE=check node publish-reel.mjs",
     "story": "node render-story.mjs",
     "telop": "node render-telop.mjs"

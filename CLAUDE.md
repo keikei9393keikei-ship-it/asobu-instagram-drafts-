@@ -150,6 +150,8 @@ npx playwright install chromium   # 初回のみ
 npm run render                    # dist/index.html をブラウザで確認
 npm run dupes                     # 使い回している文がないか確認（重複があれば終了コード1）
 npm run reel                      # リール動画を dist/reels/ に書き出す（ffmpeg が要る）
+bash scripts/setup-voicevox.sh    # ずんだもんの声を作るために、初回のセッションで1回（§5.5）
+npm run reel:all -- <名前>        # 声 → 映像 → 効果音と声の合成を1回で（§5.5）
 ```
 
 ## 5.5 リール動画（1080×1920・MP4）
@@ -200,7 +202,7 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 **出力は 30fps・600フレーム**（24fpsで撮って30fpsに変換している）。
 フレーム番号で中身を確かめるときは30で割ると秒になる。
 
-- **BGM・ナレーションは入れない。** Instagramのアプリ内で音源を付けるほうが、権利の処理が済んだものを使える。
+- **BGMは入れない**（声のナレーションは下の項目）。Instagramのアプリ内で音源を付けるほうが、権利の処理が済んだものを使える。
   ただし**無音のAAC音声だけは埋め込んである**（Instagramが音声トラックのない動画を
   受け付けないことがあるため）
 - **効果音（SE）は `npm run reel:se` で足せる。** `render-reel-se.mjs` が ffmpeg で
@@ -208,12 +210,30 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
   場面が変わるたびに whoosh、`fx:"flash"` や `countTo` がある場面は閃光のピークに chime、
   `note` がある場面は白い枠が出るタイミングに pop が鳴る。**`npm run reel` で動画を作ったあとに
   1本ずつ・または全部まとめて重ねる**（`-- <名前>` で1本だけ）。入れるかどうかは動画ごとに選べる
-- **声（ナレーション）は、本人が用意した音声だけ重ねられる。** `voices/<名前>/01.wav, 02.wav …` を
-  場面の順に置いて `npm run reel:se -- <名前>` を流すと、各場面の頭に重なる（場面より長い声は最大1.3倍まで
-  速め、それでも長ければ警告）。声があるときは効果音を小さくする。**声はこちらでは作らない**
-  （VOICEVOX はGitHubからの入手が必要で、クラウド環境では止められていた）。
-  **VOICEVOX のキャラクターの声を使うときは、キャプションに「VOICEVOX:ずんだもん」のように
-  クレジットを1行入れる**（規約）。声の台本は `reels/<名前>.json` の場面と同じ数に分けて書く
+- **声（ずんだもん）は、このリポジトリの中で作れる（2026-10-07〜）。** VOICEVOX ENGINE（CPU版）を
+  公式の GitHub リリースから入れて使う。**1回の流れ：**
+  1. 初回のセッションだけ `bash scripts/setup-voicevox.sh`（約1.8GBをダウンロードして展開。1〜2分。
+     `~/.cache/voicevox/engine/` に入る。入っていれば何もしない。**セッションが変わると消えるので、
+     新しいセッションでは最初に1回流す**）
+  2. `voices/<名前>/script.txt` に台本を書く（書式は `01（0.15秒〜 / 枠2.45秒）文`。番号が出力名になり、
+     カッコの中は読み飛ばす。**文言は台本どおりに読ませる**。1行＝リールの1場面）
+  3. `npm run reel:all -- <名前>` の1回で、声 → 映像 → 効果音と声の合成まで出る（`dist/reels/<名前>.mp4`）。
+     声だけ作り直すなら `npm run voices -- <名前>`（`voices/<名前>/01.wav, 02.wav …`）。
+     **名前を3つの手順に渡すため `scripts/reel-all.mjs` を挟んである**（npm の `-- 名前` は最後の1つにしか付かない）
+  - 話者は **ずんだもん（ノーマル）**。ID は名前から探す（いまは 3）。話す速さ 1.15、ほかは初期値
+  - 声の前後の無音は ffmpeg で削る（`silenceremove=start_periods=1:start_threshold=-40dB` を前後に）
+  - 声を場面に合わせる処理は `render-reel-se.mjs` のまま：各場面の頭 +0.15秒に置き、場面より長い声は
+    最大1.3倍まで速める（それでも長ければ警告）。声があるときは効果音を小さくする
+  - `voices/*/*.wav` は台本から作り直せるのでコミットしない（`.gitignore`）。コミットするのは `script.txt`
+  - 合成は同じファイルを上書きするので、`reel:all` は合成前の映像を取っておき、先頭からの映像データの
+    md5 が合成の前後で同じことを確かめる。**合成後は最後の1フレーム（0.03秒）だけ短くなる**
+    （音声を動画の長さちょうどで切る `-shortest` のため。もとからの動き。映像の中身は変わらない）
+  - **ダウンロードが止められたら**（`github.com` / `release-assets.githubusercontent.com`）、
+    VOICEVOX 以外の読み上げで代用せず、止められた URL とエラーを報告して止まる
+  - **VOICEVOX のキャラクターの声を使うときは、キャプションに「VOICEVOX:ずんだもん」のように
+    クレジットを1行入れる**（規約）
+  - 本人が録った声・別に用意した WAV を使うときは、`voices/<名前>/01.wav …` を場面の順に置いて
+    `npm run reel:se -- <名前>` だけ流す（`script.txt` は要らない）
 - 文章ルール（§4）はリールにも同じように効く。会場名・LINE・人数は出さない
 
 ### ストーリー用の静止画
@@ -271,6 +291,9 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 | `assets/mascot.png` | 背景を抜いたマスコット。リールで使う | 差し替えるときは同じ名前で置く |
 | `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
 | `render-reel-se.mjs` | 効果音（whoosh/chime/pop）を合成して重ねる（`npm run reel:se`） | 仕組み改修時のみ |
+| `scripts/setup-voicevox.sh` | VOICEVOX ENGINE（CPU版）を公式リリースから入れる | セッションごとに最初に1回 |
+| `scripts/make-voices.mjs` / `voices/<名前>/script.txt` | 台本から、ずんだもんの声（WAV）を作る（`npm run voices`） | 台本を書くのはここ |
+| `scripts/reel-all.mjs` | 声 → 映像 → 合成を1回で流す（`npm run reel:all -- <名前>`） | 仕組み改修時のみ |
 | `stories/<活動日>.json` / `render-story.mjs` | ストーリー用の静止画（`npm run story`） | 告知のたびに1つ足す |
 | `telops/<名前>.json` / `telop.html` / `render-telop.mjs` | 撮影動画に重ねる透明テロップ（`npm run telop`） | 台本ができたら1つ足す |
 | `publish-reel.mjs` | リールの投稿（Pages上の動画URLをAPIに渡す） | `MODE=check` で確認、`publish` で投稿 |
