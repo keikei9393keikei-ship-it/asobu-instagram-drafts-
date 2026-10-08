@@ -322,6 +322,8 @@ main にあって予定日が先 → 投稿予定、Instagram 側の数字があ
 | `test/` | 校閲の規則のテスト（`npm test`。node の標準の `node:test` だけで動く） | |
 | `record-run.mjs` | 投稿の結果を data ブランチの `runs/publish.json` に残し、失敗なら Issue「リール投稿エラー」を作る | 成功したら開いている Issue を閉じる |
 | `.claude/routines/` | 週次の Routine が読む手順（来週のリールを作る／差し戻しを反映する） | 手順を変えたいときはここをPRで直す |
+| `fetch-metrics.mjs` | 投稿後の数字を取り込み、data ブランチの `metrics/` に書く（`fetch-metrics.yml`。`MODE=probe` で権限の確認だけ） | ログにキャプション本文を出さない |
+| `lib/databranch.mjs` | data ブランチに書く部品（`record-run`・`fetch-metrics` が共有） | |
 | `fetch-pending.mjs` | 承認待ち（ラベル `weekly-reels` のPR）のリールを `pending-src/` に取ってくる | 一覧が取れないときは何も消さない |
 | `.github/workflows/check-reels.yml` | PR の校閲（テスト・`check:reels --strict`・`dupes`）。秘密情報は使わない | ここが赤いPRはマージしない |
 | `reels/<名前>.json` | リール動画の場面の並び | 動画を足すときはここ |
@@ -469,6 +471,21 @@ Metaから見ると毎回知らない場所からのアクセスに見えるた�
   書き出しは `--keep-going`：1本の不備（声が場面に収まらない等）でビルド全体を止めず、失敗はボードの承認待ちと警告に出る。
   **`pending/` の動画は投稿に使うURL（`/reels/`）とは別の場所**なので、承認前の動画が投稿されることはない
 - マージが予定日に間に合わなかったリールは投稿されない（ボードに「予定日を過ぎた」と出る）。出し直すなら `date` を変える
+
+## 7.10 投稿後の数字の取り込み
+
+`fetch-metrics.yml` が**毎朝5:13（日本時間）**に動き、投稿済みのリールの数字を data ブランチの `metrics/<名前>.json` に1日1件ずつ残す。
+管理ボードの「先週の数字」と「投稿済み」の表はここを読む。週次の Routine も、ネタ選びの材料にここを読む。
+
+- 突き合わせは**キャプション**で行う（名乗りを除いて比べる。`publish-reel` の二重投稿の鍵と同じ）。
+  手で投稿したリールも、`reels/` のキャプションと同じなら数字が取れる
+- 取る指標：再生（views）・リーチ・保存・シェア・いいね・コメント・反応の合計・平均視聴時間。
+  **いいねは合計だけ**（誰が押したかはAPIで取れない）。**リール単体のフォロー数はAPIで取れない**ことが多い（取れなければボードは「—」）
+- 必要な権限：`instagram_business_basic` と **`instagram_business_manage_insights`**。
+  足りるかどうかは **Actions → fetch-metrics → Run workflow で `mode=probe`** を選ぶと分かる（何も書かない）。
+  足りなければ、Meta for Developers で権限を足してトークンを取り直し、`IG_ACCESS_TOKEN` を更新する手順がログに出る
+- 失敗はボードの「仕組みの動き」と警告に出る（トークン切れ・権限不足は原因と対処付き）
+- ログは公開されるので、**キャプション本文は出さない**（リールの名前と数字だけ）
 
 ## 8. 作業の進め方
 

@@ -44,6 +44,7 @@ const WORKFLOWS = [
   { file: 'auto-publish-reel.yml', label: 'リールの自動投稿' },
   { file: 'auto-publish.yml', label: 'カードの自動投稿' },
   { file: 'build.yml', label: 'ビルドとPages' },
+  { file: 'fetch-metrics.yml', label: '数字の取り込み' },
 ];
 
 const today = todayJST();
