@@ -14,12 +14,11 @@
 //
 // 必要な環境変数（Actions が自動で入れる）: GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_SERVER_URL, GITHUB_RUN_ID
 
-import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { redact, diagnose } from './lib/diagnose.mjs';
+import { writeDataBranch } from './lib/databranch.mjs';
 
 const file = process.argv[2];
 const REPO = process.env.GITHUB_REPOSITORY;
@@ -28,7 +27,6 @@ const RUN_URL = REPO && process.env.GITHUB_RUN_ID
   ? `${process.env.GITHUB_SERVER_URL || 'https://github.com'}/${REPO}/actions/runs/${process.env.GITHUB_RUN_ID}` : null;
 const LABEL = 'publish-error';
 const HISTORY = 30;
-const BOT = ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com'];
 
 const warn = (msg) => console.log(`::warning::${redact(msg)}`);
 
@@ -40,41 +38,17 @@ const result = JSON.parse(await readFile(file, 'utf8'));
 result.error = result.error ? redact(result.error) : undefined;
 result.runUrl = RUN_URL;
 
-const git = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim();
-
-/** data ブランチの runs/publish.json を更新する。ほかの実行と重なったら取り直して3回まで */
+/** data ブランチの runs/publish.json に「最後の結果」と「直近の履歴」を書く */
 async function recordToDataBranch() {
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const dir = await mkdtemp(path.join(process.env.RUNNER_TEMP || tmpdir(), 'data-'));
-    try {
-      let exists = true;
-      try { git('.', 'ls-remote', '--exit-code', '--heads', 'origin', 'data'); } catch { exists = false; }
-      if (exists) {
-        git('.', 'fetch', '--depth=1', 'origin', '+refs/heads/data:refs/remotes/origin/data');
-        git('.', 'worktree', 'add', '--detach', dir, 'origin/data');
-      } else {
-        // data ブランチを新しく作る。main とは履歴を共有しない
-        git('.', 'worktree', 'add', '--detach', dir, 'HEAD');
-        git(dir, 'checkout', '--orphan', 'data-new');
-        git(dir, 'rm', '-rf', '-q', '.');
-      }
-      const target = path.join(dir, 'runs', 'publish.json');
-      const prev = existsSync(target) ? JSON.parse(await readFile(target, 'utf8')) : { history: [] };
-      const next = { last: result, history: [result, ...(prev.history || [])].slice(0, HISTORY) };
-      await mkdir(path.dirname(target), { recursive: true });
-      await writeFile(target, `${JSON.stringify(next, null, 2)}\n`);
-      git(dir, 'add', 'runs/publish.json');
-      git(dir, ...BOT, 'commit', '-q', '-m', `data: ${result.ok ? 'record' : 'record failed'} ${result.target || 'publish'}`);
-      git(dir, 'push', '-q', 'origin', 'HEAD:refs/heads/data');
-      console.log('data ブランチの runs/publish.json に記録しました。');
-      return;
-    } catch (e) {
-      if (attempt === 3) throw e;
-      console.log(`data ブランチへの書き込みをやり直します（${attempt}回目）`);
-    } finally {
-      try { git('.', 'worktree', 'remove', '--force', dir); } catch { await rm(dir, { recursive: true, force: true }); }
-    }
-  }
+  await writeDataBranch(async (dir) => {
+    const target = path.join(dir, 'runs', 'publish.json');
+    const prev = existsSync(target) ? JSON.parse(await readFile(target, 'utf8')) : { history: [] };
+    const next = { last: result, history: [result, ...(prev.history || [])].slice(0, HISTORY) };
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, `${JSON.stringify(next, null, 2)}\n`);
+    return ['runs/publish.json'];
+  }, `data: ${result.ok ? 'record' : 'record failed'} ${result.target || 'publish'}`);
+  console.log('data ブランチの runs/publish.json に記録しました。');
 }
 
 async function gh(method, endpoint, body) {

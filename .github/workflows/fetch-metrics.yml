@@ -1,0 +1,46 @@
+name: fetch-metrics
+
+# 投稿済みリールの数字（再生・保存・シェア・いいね…）を Instagram から取り込み、
+# data ブランチの metrics/<名前>.json に1日1件ずつ残す。管理ボードの「先週の数字」はここを読む。
+#
+# 手動実行の mode：
+#   probe … 権限が足りているかだけを確かめる（何も書かない）。足りなければ、やることを出して失敗する
+#   fetch … 取り込んで data ブランチに書く（毎日の定期実行もこれ）
+on:
+  schedule:
+    # 毎朝 5:13 JST（= 20:13 UTC）。投稿系（7分・23分）とビルド（41分）とずらした
+    - cron: '13 20 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe = 権限の確認だけ / fetch = 取り込んで data ブランチに書く'
+        required: true
+        default: probe
+        type: choice
+        options: [probe, fetch]
+
+permissions:
+  contents: write    # data ブランチに書くため（main は守るルールで保護する）
+
+concurrency:
+  group: fetch-metrics
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 依存は使わない（node の標準だけで動く）
+      - name: Fetch metrics
+        env:
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'fetch' }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_API_VERSION: ${{ vars.IG_API_VERSION }}
+        run: node fetch-metrics.mjs
