@@ -4,13 +4,18 @@
 //   npm run reel -- beginner     … 1本だけ
 //   npm run reel -- --force      … 中身が変わっていなくても書き出し直す
 //   node render-reel.mjs --needs-voice … 声を新しく作る必要があれば yes、なければ no を出すだけ（build.yml が使う）
+//   node render-reel.mjs --keep-going  … 1本が失敗しても残りを書き出す。失敗は <出力先>/errors.json に書く
+//                                         （承認待ちのプレビューで使う。1本の不備でビルド全体を止めないため）
+//
+// 読む場所と書く場所は環境変数で変えられる（承認待ちのプレビューを dist/pending/<PR番号>/ に出すため）：
+//   REELS_SRC（既定 reels/）・REELS_OUT（既定 dist/reels/）。声の置き場は常に dist/reels/.voice/ を共有する
 //
 // voice のあるリールは、場面の say を VOICEVOX でずんだもんの声にして、その場面の頭（SAY_DELAY 秒後）に重ねる。
 // 声のないリールは今までどおり無音の音声トラックを1本入れる。
 //
 // reel.html を Playwright で開き、1フレームずつ seek して撮る。
 // 同じ t なら必ず同じ絵になる作りなので、何度流しても同じ動画ができる。
-// 最後に ffmpeg でつなぐ（GitHub の ubuntu ランナーには ffmpeg が入っている）。
+// 最後に ffmpeg でつなぐ（GitHub の ubuntu ランナーには入っていないので build.yml で入れている）。
 
 import { chromium } from 'playwright';
 import { readFile, readdir, mkdir, rm, writeFile } from 'node:fs/promises';
@@ -24,20 +29,23 @@ import { prepareVoice, plannedLines } from './lib/voice.mjs';
 import { VOICEVOX_CREDIT } from './lib/compliance.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const SRC = path.join(ROOT, 'reels');
-const DIST = path.join(ROOT, 'dist', 'reels');
+const SRC = path.resolve(ROOT, process.env.REELS_SRC || 'reels');
+const DIST = path.resolve(ROOT, process.env.REELS_OUT || path.join('dist', 'reels'));
+const rel = (p) => path.relative(ROOT, p);
 const TEMPLATE_URL = pathToFileURL(path.join(ROOT, 'reel.html')).href;
 
 const FPS = 24;
 const FFMPEG = process.env.FFMPEG || 'ffmpeg';
 const FORCE = process.argv.includes('--force');
+const KEEP_GOING = process.argv.includes('--keep-going');
 // 書き出した動画の元になったもののハッシュ。Actions では dist/reels/ をキャッシュするので、
 // 中身が同じなら描き直さずに済む（1本あたり数分かかるため）
 const HASHES = path.join(DIST, '.hashes');
 // 見た目と書き出し方を決めるファイル。どれかが変わったら全部描き直す
 const SHARED = ['reel.html', 'render-reel.mjs', 'assets/mascot.png', 'lib/voice.mjs'];
-// 作った声の置き場。dist/reels/ ごとキャッシュされるので、動画を描き直すときも声は作り直さずに済む
-const VOICE_DIR = path.join(DIST, '.voice');
+// 作った声の置き場。dist/reels/ ごとキャッシュされるので、動画を描き直すときも声は作り直さずに済む。
+// 承認待ちのプレビューも同じ置き場を使う（マージしたあとに同じ声を作り直さない）
+const VOICE_DIR = path.join(ROOT, 'dist', 'reels', '.voice');
 
 function run(cmd, args) {
   return new Promise((resolve, reject) => {
@@ -77,12 +85,12 @@ async function upToDate(name, spec) {
 async function renderOne(browser, name) {
   const spec = JSON.parse(await readFile(path.join(SRC, `${name}.json`), 'utf8'));
   const errors = validateReel(spec);
-  if (errors.length) throw new Error(`reels/${name}.json の形が正しくありません:\n   - ${errors.join('\n   - ')}`);
+  if (errors.length) throw new Error(`${rel(SRC)}/${name}.json の形が正しくありません:\n   - ${errors.join('\n   - ')}`);
   const seconds = totalSeconds(spec.scenes);
   const out = path.join(DIST, `${name}.mp4`);
   if (await upToDate(name, spec)) {
-    console.log(`  ${name}: 変わっていないので書き出しを省きました -> dist/reels/${name}.mp4`);
-    return;
+    console.log(`  ${name}: 変わっていないので書き出しを省きました -> ${rel(out)}`);
+    return false;
   }
   const hash = await sourceHash(spec);
   const hashFile = path.join(HASHES, `${name}.txt`);
@@ -91,7 +99,7 @@ async function renderOne(browser, name) {
   try {
     voice = await prepareVoice(spec, VOICE_DIR);
   } catch (e) {
-    throw new Error(`reels/${name}: ${e.message}`);
+    throw new Error(`${rel(SRC)}/${name}: ${e.message}`);
   }
   const frames = Math.round(seconds * FPS);
   const tmp = path.join(DIST, `.frames-${name}`);
@@ -146,12 +154,13 @@ async function renderOne(browser, name) {
   await rm(tmp, { recursive: true, force: true });
   await mkdir(HASHES, { recursive: true });
   await writeFile(hashFile, hash);
-  console.log(`  ${name}: ${seconds.toFixed(1)}秒 / ${frames}フレーム${voice.length ? ` / 声${voice.length}本` : ''} -> dist/reels/${name}.mp4`);
+  console.log(`  ${name}: ${seconds.toFixed(1)}秒 / ${frames}フレーム${voice.length ? ` / 声${voice.length}本` : ''} -> ${rel(out)}`);
+  return true;
 }
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith('-'));
 if (!existsSync(SRC)) {
-  console.log('reels/ がありません。');
+  console.log(`${rel(SRC)}/ がありません。`);
   process.exit(0);
 }
 const names = (await readdir(SRC))
@@ -180,12 +189,30 @@ if (only.length === 0) {
     if (m && !names.includes(m[1])) {
       await rm(path.join(DIST, f), { force: true });
       await rm(path.join(HASHES, `${m[1]}.txt`), { force: true });
-      console.log(`  ${m[1]}: reels/ に無いので消しました`);
+      console.log(`  ${m[1]}: ${rel(SRC)}/ に無いので消しました`);
     }
   }
 }
 // CHROMIUM_PATH を指定すると、入っている Chromium をそのまま使う（Playwright の版と合わないときの逃げ道）
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
-for (const n of names) await renderOne(browser, n);
+let rendered = 0;
+const failures = {};
+for (const n of names) {
+  try {
+    if (await renderOne(browser, n)) rendered++;
+  } catch (e) {
+    if (!KEEP_GOING) throw e;
+    failures[n] = String(e.message).slice(0, 600);
+    console.log(`  ❌ ${n}: ${failures[n]}`);
+  }
+}
 await browser.close();
-console.log(`done. ${names.length} reels -> dist/reels/`);
+if (KEEP_GOING) {
+  // 失敗の一覧（ボードの承認待ちに出す）。失敗がなければ消す
+  const errFile = path.join(DIST, 'errors.json');
+  if (Object.keys(failures).length) await writeFile(errFile, JSON.stringify(failures, null, 2));
+  else await rm(errFile, { force: true });
+}
+// Actions に「何か書き出したか」を伝える。書き出したときだけキャッシュを保存する（build.yml）
+if (process.env.GITHUB_OUTPUT && rendered) await writeFile(process.env.GITHUB_OUTPUT, 'rendered=true\n', { flag: 'a' });
+console.log(`done. ${names.length} reels -> ${rel(DIST)}/（書き出し ${rendered}本${Object.keys(failures).length ? `・失敗 ${Object.keys(failures).length}本` : ''}）`);

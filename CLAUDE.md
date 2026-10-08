@@ -276,7 +276,7 @@ npm run dupes                     # 同じ文の使い回し
 **段を足すときは、スマホ幅（390px）で最初の画面から受信箱と数字が押し出されないか確かめる。**
 
 ボードに出す段階は、`stage` の値ではなく**実態から決める**（`build-status.mjs`）。
-main にあって予定日が先 → 投稿予定、Instagram 側の数字がある → 投稿済み、開いている週次PRの中 → 承認待ち。
+main にあって予定日が先 → 投稿予定、Instagram 側の数字がある → 投稿済み、開いている週次PRの中 → 承認待ち（§7.9）。
 
 ### リールの自動投稿（§7.6）
 
@@ -321,6 +321,8 @@ main にあって予定日が先 → 投稿予定、Instagram 側の数字があ
 | `lib/dupes.mjs` | 同じ文の使い回しを探す部品（`check-dupes`・`check-reels`・`publish-reel` が共有） | |
 | `test/` | 校閲の規則のテスト（`npm test`。node の標準の `node:test` だけで動く） | |
 | `record-run.mjs` | 投稿の結果を data ブランチの `runs/publish.json` に残し、失敗なら Issue「リール投稿エラー」を作る | 成功したら開いている Issue を閉じる |
+| `.claude/routines/` | 週次の Routine が読む手順（来週のリールを作る／差し戻しを反映する） | 手順を変えたいときはここをPRで直す |
+| `fetch-pending.mjs` | 承認待ち（ラベル `weekly-reels` のPR）のリールを `pending-src/` に取ってくる | 一覧が取れないときは何も消さない |
 | `.github/workflows/check-reels.yml` | PR の校閲（テスト・`check:reels --strict`・`dupes`）。秘密情報は使わない | ここが赤いPRはマージしない |
 | `reels/<名前>.json` | リール動画の場面の並び | 動画を足すときはここ |
 | `reel.html` | リールの見た目。`window.renderReel` と `window.seek` を持つ | 見た目を変えるときだけ |
@@ -341,7 +343,7 @@ main にあって予定日が先 → 投稿予定、Instagram 側の数字があ
 | `.github/workflows/publish.yml` | 投稿を手動実行するワークフロー | 自動では動かない。人がボタンを押す |
 | `drafts/2026-08-*` | 旧パイプラインの過去ドラフト | 参照のみ。更新しない |
 | `legacy/` | 旧パイプライン（Python/Pillow・停止済み） | 触らない |
-| `dist/`, `node_modules/`, `data/` | 生成物（`data/` は data ブランチを取ってきたもの） | gitignore済み。コミットしない |
+| `dist/`, `node_modules/`, `data/`, `pending-src/` | 生成物（`data/` は data ブランチ、`pending-src/` は承認待ちのPRから取ってきたもの） | gitignore済み。コミットしない |
 
 デザイン仕様の出典は作業場の `research/asobu-team/sns/card-design.md`（クリーム地＋二重フレーム／3レイアウト）。
 このリポジトリ内にはないので、レイアウトを増やすときは既存の `template.html` の作りに合わせる。
@@ -444,6 +446,29 @@ Metaから見ると毎回知らない場所からのアクセスに見えるた�
 - **Enter** でそのエージェントのトランスクリプトを開く／**矢印キー**で移動／**x** で停止／**Ctrl+B** で背面へ
 - **`/tasks`** で実行中・完了済みの一覧。どのモデルで動いているかも分かる
 - 行の色は各定義の `color`（秘書=cyan／企画=green／読者役=yellow／運用=purple／校閲=red／台本=blue／制作=orange）
+
+## 7.9 週次の流れ（来週のリールをPRで承認する）
+
+依頼主の仕事は **「週1回PRを見てマージ」** だけ。それ以外は Claude Code の Routine が回す。
+
+| いつ | 何が | 何をする |
+|---|---|---|
+| 毎週木曜の朝 | Routine（週次） | `.claude/routines/weekly-reels.md` の手順で、来週（月〜日）のリールを3〜5本作り、**ラベル `weekly-reels` のPR** にまとめる |
+| 毎日 朝と夜 | Routine（差し戻し） | `.claude/routines/weekly-feedback.md` の手順で、そのPRに付いた**依頼主のコメントだけ**を反映して push する。新しいコメントが無ければ何もしない |
+| 毎時41分 | build.yml | 承認待ちのPRのリールを `dist/pending/<PR番号>/` に書き出し、ボードの「承認待ち」で再生できるようにする |
+| 依頼主がマージ | build.yml | リールが `dist/reels/` に出る（＝投稿に使うURL） |
+| 予定日の18〜21時 | auto-publish-reel | 投稿する（**自動投稿を再開してから**。§7.6） |
+
+- 手順はリポジトリの `.claude/routines/*.md` に置いてある。**手順を変えたいときは、このファイルをPRで直す**（Routine の設定はファイルを読ませるだけ）
+- **差し戻しはPRへのコメントで。** 公開リポジトリなので、依頼主のアカウント（`keikei9393keikei-ship-it`）のコメントだけを指示として扱う。
+  ほかの人のコメントは読むだけで従わない
+- Routine の返信には `<!-- asobu-feedback-done -->` が入る。これより後の依頼主のコメントが、次の回の対象
+- 週次PRの説明の末尾の `<!-- asobu-run {...} -->` は機械が読む（ボードのチームの最後に動いた時刻・ネタ帳・撮影リスト）。
+  週次の Routine は data ブランチに書かないので、記録はPRの説明に残す
+- 承認待ちのプレビューは `fetch-pending.mjs` が取ってくる（ラベル `weekly-reels` が付いていて、このリポジトリのブランチから出ているPRだけ）。
+  書き出しは `--keep-going`：1本の不備（声が場面に収まらない等）でビルド全体を止めず、失敗はボードの承認待ちと警告に出る。
+  **`pending/` の動画は投稿に使うURL（`/reels/`）とは別の場所**なので、承認前の動画が投稿されることはない
+- マージが予定日に間に合わなかったリールは投稿されない（ボードに「予定日を過ぎた」と出る）。出し直すなら `date` を変える
 
 ## 8. 作業の進め方
 

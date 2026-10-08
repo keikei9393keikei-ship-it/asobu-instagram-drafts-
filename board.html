@@ -462,7 +462,8 @@ function pendingBlock(pending) {
           h('div', { class: 'meta', text: `${mdw(r.date)}・${r.seconds ? `${r.seconds}秒` : ''}` }),
           r.video
             ? h('video', { src: `../${r.video}#t=0.5`, controls: true, playsinline: true, preload: 'metadata' })
-            : h('div', { class: 'novideo', text: '動画のプレビューは M5 から' }),
+            : h('div', { class: 'novideo', text: r.renderError ? '動画を書き出せませんでした' : '動画はまだ書き出し中です（毎時41分のビルドで出ます）' }),
+          r.renderError ? h('div', { class: 'checks' }, h('span', { class: 'ng', text: '✕ 書き出しの失敗' }), h('ul', {}, h('li', { text: r.renderError }))) : null,
           r.schemaErrors && r.schemaErrors.length
             ? h('div', { class: 'checks' }, h('span', { class: 'ng', text: '✕ ファイルの形が正しくありません' }),
               h('ul', {}, r.schemaErrors.map((e) => h('li', { text: e }))))
