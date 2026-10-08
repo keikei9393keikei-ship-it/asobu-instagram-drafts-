@@ -10,6 +10,9 @@
 //     runs/agents.json           担当ごとの最後に動いた時刻
 //     pipeline/backlog.json      ネタ案〜校閲で止まっているもの・撮影リスト
 //     inbox-summary.json         受信箱の件数・優先度・期限だけ
+//   週次PRの説明に埋め込んだ実行記録（<!-- asobu-run {...} -->）
+//     担当ごとの最後に動いた時刻と、ネタ帳（PRに載らなかった案・撮影リスト）。
+//     週次の Routine は data ブランチに書かないので、記録はPRの説明に残す（.claude/routines/weekly-reels.md）
 //   GitHub API（読み取りのみ。GITHUB_TOKEN が無ければ認証なしで読む。公開リポジトリなので読めるが、
 //              回数制限があり、ログ（❌ の行）は認証がないと読めない）
 //     開いている週次PR（weekly-reels ラベル）と、その中のリール
@@ -199,8 +202,37 @@ function pickBacklog(src) {
 }
 
 // ── チーム ───────────────────────────────────────────────
-async function loadTeam() {
+/** 週次PRの説明に埋め込んだ実行記録を読む。いちばん新しく更新された週次PRのものを使う */
+function parseRunRecord(body) {
+  const m = String(body || '').match(/<!--\s*asobu-run\s*([\s\S]*?)-->/);
+  if (!m) return null;
+  try {
+    const rec = JSON.parse(m[1]);
+    return rec && typeof rec === 'object' ? rec : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadRunRecord() {
+  const pulls = await gh(`/repos/${REPO}/pulls?state=all&sort=updated&direction=desc&per_page=30`);
+  if (!Array.isArray(pulls)) return {};
+  for (const pr of pulls) {
+    if (!pr.labels?.some((l) => l.name === PR_LABEL) || pr.head?.repo?.full_name !== REPO) continue;
+    const rec = parseRunRecord(pr.body);
+    if (rec) return { ...rec, pr: pr.number };
+  }
+  return {};
+}
+
+const isoish = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v) ? v : null);
+
+async function loadTeam(recordAgents = {}) {
   const runs = (await readJson(path.join(DATA, 'runs', 'agents.json'), {})) || {};
+  // data ブランチの記録と週次PRの記録の、新しいほうを使う
+  for (const [k, v] of Object.entries(recordAgents || {})) {
+    if (isoish(v) && (!isoish(runs[k]) || v > runs[k])) runs[k] = v;
+  }
   const files = [];
   const walk = async (dir) => {
     if (!existsSync(dir)) return;
@@ -220,8 +252,7 @@ async function loadTeam() {
     const desc = get('description');
     // 「【secretary の指示先／企画担当】…」から役割名だけを抜く
     const role = (desc.match(/／([^】]+)】/) || [])[1] || (name === 'secretary' ? '秘書・窓口' : '');
-    const last = runs[name];
-    team.push({ name, role, color: get('color'), lastRunAt: typeof last === 'string' ? last : null });
+    team.push({ name, role, color: get('color'), lastRunAt: isoish(runs[name]) });
   }
   return team;
 }
@@ -236,6 +267,8 @@ async function loadPendingPRs() {
     // 他人のフォークから来たPRは取り込まない（ボードに出す＝公開の場で動画を作ることになるため）
     if (pr.head?.repo?.full_name !== REPO) continue;
     const files = (await gh(`/repos/${REPO}/pulls/${pr.number}/files?per_page=100`)) || [];
+    // プレビューの書き出しで失敗したもの（声が場面に収まらない等）。build.yml の --keep-going が書く
+    const renderErrors = (await readJson(path.join(DIST, 'pending', String(pr.number), 'errors.json'), {})) || {};
     const reels = [];
     for (const f of files) {
       if (!/^reels\/[^/]+\.json$/.test(f.filename) || f.status === 'removed') continue;
@@ -244,11 +277,13 @@ async function loadPendingPRs() {
       try { spec = JSON.parse(text); } catch { /* 読めないものは形のエラーとして出す */ }
       const name = path.basename(f.filename, '.json');
       const errors = spec ? validateReel(spec) : ['JSONとして読めません'];
+      const renderError = renderErrors[name] ? redact(String(renderErrors[name])).slice(0, 300) : null;
       reels.push({
         ...(spec && !errors.length ? reelSummary(name, spec) : { name, title: name, date: spec?.date || null }),
         caption: spec?.caption ? String(spec.caption) : '',
         schemaErrors: errors,
-        // 動画のプレビューは M5（build.yml が dist/pending/ に描き出す）で入る
+        renderError,
+        // 承認待ちのプレビュー。build.yml が fetch-pending.mjs → render-reel.mjs で dist/pending/ に書き出す
         video: existsSync(path.join(DIST, 'pending', String(pr.number), `${name}.mp4`))
           ? `pending/${pr.number}/${name}.mp4` : null,
       });
@@ -302,7 +337,9 @@ const postedByRun = new Map();
 for (const h of [...(publishRuns?.history || [])].reverse()) {
   if (h?.ok && h.mediaId && /^reels\/[^/]+$/.test(h.target || '')) postedByRun.set(h.target.slice('reels/'.length), h);
 }
-const backlog = pickBacklog(await readJson(path.join(DATA, 'pipeline', 'backlog.json'), null));
+const runRecord = await loadRunRecord();
+const dataBacklog = await readJson(path.join(DATA, 'pipeline', 'backlog.json'), null);
+const backlog = pickBacklog(dataBacklog?.items?.length ? dataBacklog : { items: runRecord.backlog || [] });
 const inbox = pickInbox(await readJson(path.join(DATA, 'inbox-summary.json'), null));
 
 const scheduled = [];
@@ -333,6 +370,15 @@ scheduled.sort((a, b) => a.date.localeCompare(b.date));
 published.sort((a, b) => String(b.postedAt || b.date).localeCompare(String(a.postedAt || a.date)));
 
 const pending = await loadPendingPRs();
+for (const pr of pending) {
+  const broken = pr.reels.filter((r) => r.renderError);
+  if (broken.length) {
+    alerts.push({ level: 'warn', title: `承認待ちのリール${broken.length}本の動画を書き出せません（#${pr.number}）`,
+      detail: broken.map((r) => `${r.name}: ${r.renderError}`).join(' / ').slice(0, 300),
+      cause: '声が場面に収まらない・形の誤りなど。承認済みの投稿には影響しない',
+      action: 'PRにコメントで差し戻すと、次の差し戻し対応の回で直る', url: pr.url });
+  }
+}
 const workflows = await loadWorkflows();
 
 if (publishLog && publishLog.ok === false) {
@@ -365,7 +411,7 @@ const status = {
   metrics: { weeks: weeklyMetrics(published), available: Object.keys(metrics).length > 0 },
   inbox,
   shootingList,
-  team: await loadTeam(),
+  team: await loadTeam(runRecord.agents),
   workflows,
   alerts,
   sources: { data: existsSync(DATA), github: workflows.some((w) => w.lastRunAt) },

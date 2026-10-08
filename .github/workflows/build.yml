@@ -16,6 +16,7 @@ on:
       - 'render.mjs'
       - 'render-reel.mjs'
       - 'build-status.mjs'
+      - 'fetch-pending.mjs'
       - 'board.html'
       - 'guard-public.mjs'
       - 'package.json'
@@ -75,21 +76,34 @@ jobs:
         run: npm run render
 
       # 描き出した動画を使い回す。1本あたり数分かかるので、変わっていないものは描き直さない。
-      # 1本ずつの判定は render-reel.mjs がハッシュで行う
+      # 1本ずつの判定は render-reel.mjs がハッシュで行う。承認待ちのプレビュー（dist/pending）も一緒に持つ
       - name: Restore rendered reels
-        id: reels-cache
         uses: actions/cache/restore@v4
         with:
-          path: dist/reels
-          key: reels-${{ hashFiles('reels/**', 'reel.html', 'render-reel.mjs', 'lib/voice.mjs', 'assets/**') }}
+          path: |
+            dist/reels
+            dist/pending
+          key: reels-${{ github.run_id }}
           restore-keys: reels-
+
+      # 承認待ち（ラベル weekly-reels の開いているPR）のリールを pending-src/<PR番号>/ に取ってくる。
+      # 承認待ちでなくなったPRの動画は dist/pending/ から消す
+      - name: Fetch reels waiting for approval
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node fetch-pending.mjs
 
       # ずんだもんの声（VOICEVOX）。声を新しく作る必要があるときだけ立てる。
       # イメージは約2GBあるので、毎時のビルドで毎回取ってこないようにしている。
       # 版は固定する（版が変わると同じセリフでも声が変わり、描き直しになるため）
       - name: Start VOICEVOX (only when new voice lines are needed)
         run: |
-          if [ "$(node render-reel.mjs --needs-voice)" = "yes" ]; then
+          needs="$(node render-reel.mjs --needs-voice)"
+          for d in pending-src/*/; do
+            [ -d "$d" ] || continue
+            [ "$(REELS_SRC="$d" REELS_OUT="dist/pending/$(basename "$d")" node render-reel.mjs --needs-voice)" = "yes" ] && needs=yes
+          done
+          if [ "$needs" = "yes" ]; then
             docker run -d --rm --name voicevox -p 50021:50021 voicevox/voicevox_engine:cpu-0.25.2
             for i in $(seq 1 90); do
               curl -fsS http://localhost:50021/version && echo " VOICEVOX is up" && break
@@ -100,16 +114,27 @@ jobs:
           fi
 
       # Instagram は動画ファイルを直接受け取れず、公開URLを渡す方式なので、
-      # ここで Pages に出しておかないと投稿できない
+      # ここで Pages に出しておかないと投稿できない。
+      # 承認待ちのプレビューは --keep-going：1本の不備でビルド全体（＝承認済みの投稿）を止めない。
+      # 失敗は dist/pending/<PR番号>/errors.json に書かれ、ボードの承認待ちに出る
       - name: Render reels
-        run: npm run reel
+        id: render
+        run: |
+          npm run reel
+          for d in pending-src/*/; do
+            [ -d "$d" ] || continue
+            REELS_SRC="$d" REELS_OUT="dist/pending/$(basename "$d")" node render-reel.mjs --keep-going
+          done
 
+      # 何か書き出したときだけ保存する（毎時のビルドで同じ中身を保存し続けないように）
       - name: Save rendered reels
-        if: steps.reels-cache.outputs.cache-hit != 'true'
+        if: steps.render.outputs.rendered == 'true'
         uses: actions/cache/save@v4
         with:
-          path: dist/reels
-          key: reels-${{ hashFiles('reels/**', 'reel.html', 'render-reel.mjs', 'lib/voice.mjs', 'assets/**') }}
+          path: |
+            dist/reels
+            dist/pending
+          key: reels-${{ github.run_id }}
 
       - name: Build status.json
         env:
