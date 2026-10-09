@@ -365,7 +365,7 @@ function metricsBlock(m) {
   const prev = weeks[weeks.length - 2];
   if (!m.available || !last) {
     return section('先週の数字', null, h('div', { class: 'card' },
-      h('p', { class: 'empty', text: 'まだ数字がありません。投稿後の数字の取り込み（M6）が始まると、ここに再生・保存・シェア・フォローが出ます。' })));
+      h('p', { class: 'empty', text: '先週の数字はまだありません。投稿したリールの数字は毎朝5時ごろに取り込まれ、ここに再生・保存・シェア・フォローが出ます。' })));
   }
   const tiles = METRICS.map(({ key, label }) => {
     const v = last[key];
@@ -410,7 +410,7 @@ function remainLabel(iso) {
 function inboxBlock(inbox) {
   if (!inbox || !inbox.available) {
     return section('受信箱', null, h('div', { class: 'card' },
-      h('p', { class: 'empty', text: '受信箱の集計はまだ始まっていません（M7）。始まると、返信待ちの件数と期限だけがここに出ます。' })));
+      h('p', { class: 'empty', text: '受信箱の集計はまだ届いていません。受信箱のシート（inbox/README.md）の準備が済むと、返信待ちの件数と期限だけがここに出ます。' })));
   }
   const first = inbox.deadlines.find((d) => d.priority === 'first');
   const next = inbox.deadlines[0];
@@ -436,7 +436,7 @@ function inboxBlock(inbox) {
 }
 
 function checksView(c) {
-  if (!c) return h('div', { class: 'checks meta', text: '校閲：まだ（校閲の仕組みは M3 で入ります）' });
+  if (!c) return h('div', { class: 'checks meta', text: '校閲：まだ（npm run check:reels -- --write で書き込まれます）' });
   return h('div', { class: 'checks' },
     h('div', {}, '校閲：', h('span', { class: c.ok ? 'ok' : 'ng', text: c.ok ? '✓ 通過' : '✕ 要修正' }),
       c.at ? h('span', { class: 'meta', text: `（${ago(c.at)}）` }) : null),
