@@ -3,7 +3,7 @@
 // 秘密情報はすべて「スクリプト プロパティ」に置く（プロジェクトの設定 → スクリプト プロパティ）。
 // このファイルにもリポジトリにも書かない。
 //   IG_ACCESS_TOKEN    Instagram のトークン（GitHub の IG_ACCESS_TOKEN と同じもの）
-//   ANTHROPIC_API_KEY  Claude API のキー（分類と下書き）
+//   ANTHROPIC_API_KEY  Claude API のキー（分類と下書き）。無ければ言葉で分類し、決まった文面の下書きを使う（有料のため任意）
 //   GITHUB_TOKEN       このリポジトリだけに絞った fine-grained PAT（Contents: Read and write）。件数を data ブランチに書くだけ
 //   NOTIFY_EMAIL       通知の宛先（省略すると、このスクリプトの持ち主のアドレス）
 

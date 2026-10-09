@@ -22,6 +22,38 @@ function guessCategory(text) {
   return 'other';
 }
 
+/**
+ * Claude を使わないとき（ANTHROPIC_API_KEY が無いとき）の決まった下書き。
+ * 事実は CLAUDE.md §1 のとおり。日程・会場と参加の段取りは空けておき、依頼主が埋める。
+ * @param {'first'|'schedule'|'other'|'none'} category
+ * @param {'dm'|'comment'} kind
+ */
+function templateDraft(category, kind) {
+  if (category === 'none') return { draft: '', todo: [] };
+  if (kind === 'comment') {
+    // コメントの返信は公開されるので短く。細かい話は DM へ
+    if (category === 'other') return { draft: 'コメントありがとうございます🙌', todo: ['内容に合わせて一言足す'] };
+    return { draft: 'コメントありがとうございます🏸 くわしいことは、よければDMでお気軽に聞いてください！', todo: [] };
+  }
+  if (category === 'first') {
+    return {
+      draft: 'メッセージありがとうございます🏸\n' +
+        'バドミントンがはじめての人や、1人で来る人もよく参加しています。\n' +
+        '持ち物は室内用のシューズだけで大丈夫です（バドミントン用でなくても、外を歩いていない靴ならOKです）。ラケットは無料でお貸しします。\n' +
+        '参加費は会場代として1回600円です。1回だけの体験もできます。\n' +
+        '【日程と会場】\n【参加の案内】',
+      todo: ['【日程と会場】を埋める', '【参加の案内】を埋める', '相手の質問に答えているか確かめる'],
+    };
+  }
+  if (category === 'schedule') {
+    return {
+      draft: 'メッセージありがとうございます🏸\n【日程と会場】\n来られそうな日があれば教えてください。\n【参加の案内】',
+      todo: ['【日程と会場】を埋める', '【参加の案内】を埋める'],
+    };
+  }
+  return { draft: 'メッセージありがとうございます🙌\n【ここに返事】', todo: ['【ここに返事】を書く'] };
+}
+
 /** ISO の時刻に24時間を足す */
 function dueFrom(iso) {
   var t = new Date(iso).getTime();

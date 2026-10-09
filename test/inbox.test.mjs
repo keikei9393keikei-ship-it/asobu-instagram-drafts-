@@ -102,3 +102,21 @@ test('期限・通知の件名・規則書の切り出し', () => {
   assert.doesNotMatch(agent, /^---/);
   assert.match(agent, /【日程と会場】/);
 });
+
+test('Claude なしの決まった下書き：検査を通り、事実（600円・ラケット無料・室内用シューズ）がそろう', () => {
+  for (const kind of ['dm', 'comment']) {
+    for (const c of ['first', 'schedule', 'other', 'none']) {
+      const { draft } = ctx.templateDraft(c, kind);
+      assert.deepEqual([...ctx.checkDraft(draft, banned)], [], `${kind}/${c}`);
+    }
+  }
+  const first = ctx.templateDraft('first', 'dm').draft;
+  assert.match(first, /600円/);
+  assert.match(first, /ラケット/);
+  assert.match(first, /無料/);
+  assert.match(first, /室内用/);
+  assert.match(first, /【日程と会場】/);
+  assert.doesNotMatch(first, /(持ち物|必要なもの)[^。\n]*600円/);
+  assert.equal(ctx.templateDraft('none', 'dm').draft, '');
+  assert.doesNotMatch(ctx.templateDraft('first', 'comment').draft, /600円|【日程と会場】/);
+});
