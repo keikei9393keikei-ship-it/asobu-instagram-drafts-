@@ -58,7 +58,11 @@ function checkSetup() {
   step('DM を読む権限（instagram_business_manage_messages）', function () { return '（会話 ' + igConversations_().length + '件）'; });
   step('コメントを読む権限（instagram_business_manage_comments）', function () { return '（コメント ' + igComments_().length + '件）'; });
   step('リポジトリの規則書', function () { var r = triageRules_(); return r.facts ? '' : '（CLAUDE.md の §1 が見つかりません）'; });
-  step('Claude API', function () { var t = claudeTriage_('dm', ['日曜の練習に、未経験でも参加できますか？'], triageRules_()); return '（試しの分類：' + PRIORITY_LABEL[t.category] + '）'; });
+  step('Claude API', function () {
+    if (!prop_('ANTHROPIC_API_KEY')) return '（キーなし：言葉で分類し、決まった文面の下書きを使います）';
+    var t = claudeTriage_('dm', ['日曜の練習に、未経験でも参加できますか？'], triageRules_());
+    return '（試しの分類：' + PRIORITY_LABEL[t.category] + '）';
+  });
   step('GitHub のトークン', function () {
     var res = UrlFetchApp.fetch('https://api.github.com/repos/' + REPO, { headers: { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN', true) }, muteHttpExceptions: true });
     if (res.getResponseCode() !== 200) throw new Error('HTTP ' + res.getResponseCode());
@@ -112,11 +116,20 @@ function poll_() {
       row[COL['届いた文']] = state.pendingTexts.join('\n―\n');
       var t;
       var r = getRules();
-      try {
-        if (r.error) throw new Error(r.error);
-        t = claudeTriage_(kind, state.pendingTexts, r);
-      } catch (e) {
-        t = { category: guessCategory(state.pendingTexts.join('\n')), reason: '（Claude で分類できず、言葉だけで仮に分けました：' + redact_(e.message) + '）', draft: '', todo: ['下書きを書く'] };
+      var byWords = function (reason) {
+        var c = guessCategory(state.pendingTexts.join('\n'));
+        var tpl = templateDraft(c, kind);
+        return { category: c, reason: reason, draft: tpl.draft, todo: tpl.todo };
+      };
+      if (!prop_('ANTHROPIC_API_KEY')) {
+        t = byWords('言葉で分類しました（Claude なし）。決まった文面の下書きです');
+      } else {
+        try {
+          if (r.error) throw new Error(r.error);
+          t = claudeTriage_(kind, state.pendingTexts, r);
+        } catch (e) {
+          t = byWords('（Claude で分類できず、言葉だけで仮に分けました：' + redact_(e.message) + '）');
+        }
       }
       triaged++;
       row[COL['_category']] = t.category;
