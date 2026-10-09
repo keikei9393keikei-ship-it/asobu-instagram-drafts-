@@ -29,6 +29,7 @@ cd "$HOME_DIR"
 # 7z が要る（なければ入れる）
 if ! command -v 7z >/dev/null 2>&1; then
   echo "7z を入れます（apt-get install p7zip-full）"
+  apt-get update -q >/dev/null 2>&1 || true      # 新しいセッションでは一覧が空のことがある
   apt-get install -y -q p7zip-full >/dev/null
 fi
 
