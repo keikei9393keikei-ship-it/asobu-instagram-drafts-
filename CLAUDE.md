@@ -186,6 +186,11 @@ npm run reel:all -- <名前>        # 声 → 映像 → 効果音と声の合�
 - `css` を書くと、その1本だけ見た目を上書きできる（例：図を大きく見せる場面だけ見出しを小さくする。
   場面は `.scene[data-i="1"]` のように番号（0始まり）で指定）
 - `foot` は全場面の下に出る固定文
+- **月の活動日まとめ（10月の活動日リールと同じ形式）は `"template": "calendar.html"` で作る**（見本 `reels/nov-cal.json`）。
+  上の階層に `title` / `year` / `month` / `dates` / `handle` を書き、場面は `type` で
+  `list`（日付カード）→ `calendar`（カレンダーで1回目から順に丸を付ける）→ `cheer`（マスコット＋紙ふぶき、`fx:"flash"`）
+  → `summary`（日付の丸＋場所はDM）→ `outro`（暗くして Instagram のアカウント）の順に並べる。
+  元の形式の「初心者さん大歓迎！」「気軽に遊びにきてね！」はルール5に合わせて言い換えてある
 - マスコットは `assets/mascot.png`（背景を抜いたキツネ）が全場面の下に自動で入る。
   跳ねて出てきて、そのあとゆっくり上下する。場面ごとに出し分ける作りにはしていない
 
@@ -288,6 +293,7 @@ ffmpeg が要る（GitHubの ubuntu ランナーには最初から入ってい�
 | `check-dupes.mjs` | 投稿どうしで同じ文を使い回していないか調べる（`npm run dupes`） | 原稿を書いたら通す |
 | `reels/<名前>.json` | リール動画の場面の並び | 動画を足すときはここ |
 | `reel.html` | リールの見た目。`window.renderReel` と `window.seek` を持つ | 見た目を変えるときだけ |
+| `calendar.html` | 月の活動日まとめリールの見た目（`"template": "calendar.html"` のとき使う） | 見た目を変えるときだけ |
 | `assets/mascot.png` | 背景を抜いたマスコット。リールで使う | 差し替えるときは同じ名前で置く |
 | `render-reel.mjs` | 1フレームずつ撮って ffmpeg で MP4 にする（`npm run reel`） | 仕組み改修時のみ |
 | `render-reel-se.mjs` | 効果音（whoosh/chime/pop）を合成して重ねる（`npm run reel:se`） | 仕組み改修時のみ |

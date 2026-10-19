@@ -17,7 +17,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(ROOT, 'reels');
 const DIST = path.join(ROOT, 'dist', 'reels');
-const TEMPLATE_URL = pathToFileURL(path.join(ROOT, 'reel.html')).href;
+// 見た目は既定で reel.html。spec.template を書くと別の型（例 calendar.html＝月の活動日まとめ）で撮る
+const templateUrl = (spec) => pathToFileURL(path.join(ROOT, spec.template || 'reel.html')).href;
 
 const FPS = 24;
 const FFMPEG = process.env.FFMPEG || 'ffmpeg';
@@ -46,11 +47,11 @@ async function renderOne(browser, name) {
   await mkdir(tmp, { recursive: true });
 
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
-  await page.goto(TEMPLATE_URL, { waitUntil: 'networkidle' });
+  await page.goto(templateUrl(spec), { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts.ready);
   // 1本だけ見た目を変えたいときは spec.css に書く（例：図を大きく見せる場面だけ見出しを小さくする）
   if (spec.css) await page.addStyleTag({ content: spec.css });
-  await page.evaluate((s) => window.renderReel(s.scenes, s.foot), spec);
+  await page.evaluate((s) => window.renderReel(s.scenes, s.foot, s), spec);
   // 見出しに使う太いグリフを先に読み込ませる。抜けると一瞬だけ別書体で写る
   await page.evaluate(async () => {
     await Promise.all([
