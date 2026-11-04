@@ -14,6 +14,8 @@ on:
       - 'template.html'
       - 'reel.html'
       - 'render.mjs'
+      - 'render-story.mjs'
+      - 'stories/**'
       - 'render-reel.mjs'
       - 'build-status.mjs'
       - 'fetch-pending.mjs'
