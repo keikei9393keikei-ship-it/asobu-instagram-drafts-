@@ -1,0 +1,11 @@
+{
+  "height": 1350,
+  "foot": "和歌山市のバドミントンサークル",
+  "css": ".pill{top:70px !important;font-size:30px !important;}\n.scene{padding-top:150px !important;padding-bottom:400px !important;}\n.mascot{width:250px !important;bottom:95px !important;}\n.foot{bottom:40px !important;font-size:32px !important;}\n.kicker{font-size:50px !important;padding:12px 42px !important;margin-bottom:26px !important;}\n.sub{margin-top:30px !important;font-size:42px !important;}\n.note{margin-top:32px !important;padding:22px 44px !important;font-size:40px !important;}\n.mascot{width:220px !important;bottom:90px !important;}\n.scene{padding-top:170px !important;padding-bottom:360px !important;}\n.head{font-size:150px !important;}",
+  "scene": {
+    "head": "11/15(日)\n19〜21時",
+    "kicker": "次に参加できる回",
+    "sub": "和歌山市内の体育館",
+    "note": "場所は <b>DM</b> でお伝えします\nはじめての方もこの回から"
+  }
+}

@@ -1,4 +1,5 @@
 // render-story.mjs — stories/<名前>.json からストーリー用の静止画（1080×1920 PNG）を作る
+//                    （"height": 1350 でフィード投稿用の 1080×1350 も作れる）
 //
 //   npm run story                … stories/ の全部を dist/stories/ に書き出す
 //   npm run story -- next        … 1枚だけ
@@ -26,9 +27,11 @@ async function renderOne(browser, name) {
   const spec = JSON.parse(await readFile(path.join(SRC, `${name}.json`), 'utf8'));
   const scene = { ...spec.scene, t: 0, d: SCENE_D };
 
-  const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
+  // フィード投稿（4:5）にするときは spec.height に 1350 と書く。既定はストーリーの 1920
+  const height = spec.height || 1920;
+  const page = await browser.newPage({ viewport: { width: 1080, height }, deviceScaleFactor: 1 });
   await page.goto(TEMPLATE_URL, { waitUntil: 'networkidle' });
-  await page.addStyleTag({ content: '.bar{display:none !important;}' });
+  await page.addStyleTag({ content: `.bar{display:none !important;} #stage{height:${height}px !important;}` });
   // 表紙など、1枚だけ見た目を変えたいときは spec.css に書く（例：札を大きくする）
   if (spec.css) await page.addStyleTag({ content: spec.css });
   await page.evaluate(() => document.fonts.ready);
