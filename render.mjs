@@ -5,6 +5,7 @@ import { readFile, readdir, mkdir, cp, writeFile, stat } from 'node:fs/promises'
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { shootStory } from './render-story.mjs';
 import { pastDates, cardTexts } from './lib/rules.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -34,7 +35,10 @@ async function renderWeek(browser, week) {
   const page = await browser.newPage({ viewport: { width: 1080, height: 1400 }, deviceScaleFactor: 1 });
   await page.goto(TEMPLATE_URL, { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts.ready);
-  const count = await page.evaluate((c) => window.renderCards(c), cards);
+  // layout:"story" の札は緑のカードではなく、最近の見た目（reel.html・オレンジ地＋キツネ）で撮る。
+  // { "layout": "story", "story": "<stories/ の名前>" } と書く（stories/ 側に "height": 1350 を入れておく）
+  const tplCards = cards.filter((c) => c.layout !== 'story');
+  if (tplCards.length) await page.evaluate((c) => window.renderCards(c), tplCards);
   // カード描画後に使われるグリフを確実に読み込む
   await page.evaluate(async () => {
     await Promise.all([
@@ -49,10 +53,16 @@ async function renderWeek(browser, week) {
 
   const els = await page.$$('.card');
   const files = [];
-  for (let i = 0; i < els.length; i++) {
+  let k = 0;
+  for (let i = 0; i < cards.length; i++) {
     const lay = cards[i]?.layout || 'card';
     const name = `${String(i + 1).padStart(2, '0')}_${lay}.png`;
-    await els[i].screenshot({ path: path.join(outDir, name) });
+    if (lay === 'story') {
+      const spec = JSON.parse(await readFile(path.join(ROOT, 'stories', `${cards[i].story}.json`), 'utf8'));
+      await shootStory(browser, spec, path.join(outDir, name));
+    } else {
+      await els[k++].screenshot({ path: path.join(outDir, name) });
+    }
     files.push(name);
   }
   await page.close();
@@ -65,7 +75,7 @@ async function renderWeek(browser, week) {
   }
 
   await writeFile(path.join(outDir, 'index.html'), weekPage(week, files, caption));
-  console.log(`  ${week}: ${count} cards`);
+  console.log(`  ${week}: ${files.length} cards`);
   return { week, files, caption, past: hasPastDate(cards, caption) };
 }
 
