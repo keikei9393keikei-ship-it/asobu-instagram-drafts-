@@ -3,7 +3,7 @@ name: build-cards
 on:
   push:
     branches: [main]
-    paths: ['weeks/**', 'template.html', 'render.mjs', '.github/workflows/build.yml']
+    paths: ['weeks/**', 'stories/**', 'template.html', 'reel.html', 'render.mjs', 'render-story.mjs', '.github/workflows/build.yml']
   schedule:
     # 毎週 日曜 22:00 JST (= 13:00 UTC) に再生成
     - cron: '0 13 * * 0'

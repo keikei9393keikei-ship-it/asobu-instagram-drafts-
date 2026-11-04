@@ -25,6 +25,13 @@ const SETTLED = 2.5;
 
 async function renderOne(browser, name) {
   const spec = JSON.parse(await readFile(path.join(SRC, `${name}.json`), 'utf8'));
+  const out = path.join(DIST, `${name}.png`);
+  await shootStory(browser, spec, out);
+  console.log(`  ${name} -> dist/stories/${name}.png`);
+}
+
+/** stories/<名前>.json の中身（spec）を1枚撮って out に書く。render.mjs からも使う */
+export async function shootStory(browser, spec, out) {
   const scene = { ...spec.scene, t: 0, d: SCENE_D };
 
   // フィード投稿（4:5）にするときは spec.height に 1350 と書く。既定はストーリーの 1920
@@ -45,25 +52,28 @@ async function renderOne(browser, name) {
   });
   await page.evaluate((t) => window.seek(t), SETTLED);
 
-  const out = path.join(DIST, `${name}.png`);
   await (await page.$('#stage')).screenshot({ path: out });
   await page.close();
-  console.log(`  ${name} -> dist/stories/${name}.png`);
 }
 
-const only = process.argv.slice(2).filter((a) => !a.startsWith('-'));
-if (!existsSync(SRC)) {
-  console.log('stories/ がありません。');
-  process.exit(0);
-}
-const names = (await readdir(SRC))
-  .filter((n) => n.endsWith('.json'))
-  .map((n) => n.replace(/\.json$/, ''))
-  .filter((n) => only.length === 0 || only.includes(n))
-  .sort();
+async function main() {
+  const only = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+  if (!existsSync(SRC)) {
+    console.log('stories/ がありません。');
+    return;
+  }
+  const names = (await readdir(SRC))
+    .filter((n) => n.endsWith('.json'))
+    .map((n) => n.replace(/\.json$/, ''))
+    .filter((n) => only.length === 0 || only.includes(n))
+    .sort();
 
-await mkdir(DIST, { recursive: true });
-const browser = await chromium.launch();
-for (const n of names) await renderOne(browser, n);
-await browser.close();
-console.log(`done. ${names.length} stories -> dist/stories/`);
+  await mkdir(DIST, { recursive: true });
+  const browser = await chromium.launch();
+  for (const n of names) await renderOne(browser, n);
+  await browser.close();
+  console.log(`done. ${names.length} stories -> dist/stories/`);
+}
+
+// render.mjs から shootStory だけ使えるように、直接流したときだけ main を動かす
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
